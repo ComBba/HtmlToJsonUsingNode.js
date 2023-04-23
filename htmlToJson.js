@@ -40,6 +40,7 @@ function convertHtmlFileToJson(inputFile, outputFile) {
         process.exit(1);
       }
       console.log(`Successfully converted ${inputFile} to ${outputFile}`);
+      console.log(`Total converted data objects: ${data.length}`);
     });
   });
 }
