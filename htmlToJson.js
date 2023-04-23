@@ -1,4 +1,5 @@
 const cheerio = require('cheerio');
+const axios = require('axios');
 const fs = require('fs');
 
 function extractData($) {
@@ -24,13 +25,10 @@ function extractData($) {
   return result;
 }
 
-function convertHtmlFileToJson(inputFile, outputFile) {
-  fs.readFile(inputFile, 'utf8', (err, html) => {
-    if (err) {
-      console.error(`Error reading file ${inputFile}:`, err);
-      process.exit(1);
-    }
-
+async function fetchAndConvertHtmlToJson(url, outputFile) {
+  try {
+    const response = await axios.get(url);
+    const html = response.data;
     const $ = cheerio.load(html);
     const data = extractData($);
 
@@ -39,10 +37,13 @@ function convertHtmlFileToJson(inputFile, outputFile) {
         console.error(`Error writing file ${outputFile}:`, err);
         process.exit(1);
       }
-      console.log(`Successfully converted ${inputFile} to ${outputFile}`);
+      console.log(`Successfully fetched and converted data from ${url} to ${outputFile}`);
       console.log(`Total converted data objects: ${data.length}`);
     });
-  });
+  } catch (err) {
+    console.error(`Error fetching data from ${url}:`, err);
+    process.exit(1);
+  }
 }
 
-convertHtmlFileToJson('input.html', 'output.json');
+fetchAndConvertHtmlToJson('https://theresanaiforthat.com/', 'output.json');
