@@ -51,11 +51,13 @@ async function createCompletion(text) {
             model: "text-davinci-003",
             // Set up prompt for the API request
             prompt: "Please summarize the following text:\n\n".concat(text, "\n\nSummary:"),
-            temperature: 0,
-            max_tokens: 512,
+            temperature: 0.5,
+            max_tokens: 1024,
             top_p: 1.0,
-            frequency_penalty: 0.0,
-            presence_penalty: 0.0,
+            n: 1,
+            stop: "None",
+            frequency_penalty: 0.5,
+            presence_penalty: 0.5,
         });
         if (response.data.choices && response.data.choices.length > 0) {
             // Return summary and usage statistics

@@ -1,7 +1,14 @@
 const cheerio = require('cheerio');
 const axios = require('axios');
 const fs = require('fs');
+const puppeteer = require('puppeteer');
 const { getWebsiteContent, createCompletion } = require('./urlToSummarizeWithOpenAI.js');
+let browser, page;
+
+async function init() {
+  browser = await puppeteer.launch();
+  page = await browser.newPage();
+}
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -12,7 +19,13 @@ function randomInRange(min, max) {
 }
 
 async function fetchAndSummarize(url) {
-  const content = await getWebsiteContent(url);
+  let content;
+  if (url.includes("apps.apple.com")) {
+    content = await getWebsiteContent(url);
+  } else {
+    content = await fetchSiteContent(url);
+  }
+  
   const summaryResult = await createCompletion(content);
 
   return summaryResult.summary;
@@ -78,6 +91,7 @@ async function fetchAndConvertHtmlToJson(url, outputFile) {
       console.log(`작동하는 데 소요된 시간: ${msToTime(elapsedTime)}`);
       console.log(`Successfully fetched and converted data from ${url} to ${outputFile}`);
       console.log(`Total converted data objects: ${data.length}`);
+      return;
     });
   } catch (err) {
     console.error(`Error fetching data from ${url}:`, err);
@@ -85,4 +99,45 @@ async function fetchAndConvertHtmlToJson(url, outputFile) {
   }
 }
 
-fetchAndConvertHtmlToJson('https://theresanaiforthat.com/', 'output.json');
+async function fetchSiteContent(url) {
+  try {
+    console.log("\n[fetchSiteContent] url:", url);
+    await page.goto(url, { waitUntil: 'networkidle2' });
+    
+    const content = await page.evaluate(() => {
+      const paragraphs = Array.from(document.querySelectorAll('p'));
+      const title = document.querySelector('title')?.innerText;
+      const description = document.querySelector('meta[name="description"]')?.content;
+      const keywords = document.querySelector('meta[name="keywords"]')?.content;
+
+      const ogTitle = document.querySelector('meta[property="og:title"]')?.content;
+      const ogDescription = document.querySelector('meta[property="og:description"]')?.content;
+      const ogImage = document.querySelector('meta[property="og:image"]')?.content;
+
+      const twitterTitle = document.querySelector('meta[name="twitter:title"]')?.content;
+      const twitterDescription = document.querySelector('meta[name="twitter:description"]')?.content;
+      const twitterImage = document.querySelector('meta[name="twitter:image"]')?.content;
+      const pMap = paragraphs.map(p => p.innerText).join('\n');
+      const contents = "".concat(title, description, keywords, ogTitle, ogDescription, ogImage, twitterTitle, twitterDescription, twitterImage, pMap,)
+      //console.log('\nURL: ', url);
+      console.log('title:', title);
+      console.log('content:', contents);
+      return contents;
+    });
+    return content;
+  } catch (error) {
+    console.error('Error fetching site content:', error);
+    return '';
+  }
+}
+
+async function closeBrowser() {
+  await page.goto('about:blank');
+  await browser.close();
+}
+
+(async () => {
+  await init();
+  await fetchAndConvertHtmlToJson('https://theresanaiforthat.com/', 'output.json');
+  await closeBrowser();
+})();
