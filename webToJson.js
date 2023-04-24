@@ -103,7 +103,12 @@ async function fetchSiteContent(url) {
   try {
     console.log("\n[fetchSiteContent] url:", url);
     await page.goto(url, { waitUntil: 'networkidle2' });
-    
+    await page.waitForTimeout(5000); // 3초 대기
+    /*await page.waitForFunction(() => {
+      // 아래 조건을 원하는 로딩 완료 조건에 따라 변경해주세요.
+      // 예: 특정 요소가 페이지에 존재하는지 확인
+      return !!document.querySelector("#root > div > div > div.banner > h1");
+    }, { timeout: 300 });*/
     const content = await page.evaluate(() => {
       const paragraphs = Array.from(document.querySelectorAll('p'));
       const title = document.querySelector('title')?.innerText;
