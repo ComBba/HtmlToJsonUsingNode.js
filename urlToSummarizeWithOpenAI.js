@@ -18,7 +18,9 @@ async function getWebsiteContent(url) {
         const html = response.data;
         const $ = cheerio.load(html);
         $('script, style, noscript, iframe, img, svg, video').remove();
-        return $('body').text().replace(/\s\s+/g, ' ').trim();
+        const metaDescription = $('meta[name="description"]').attr('content');
+        //console.log(metaDescription);
+        return metaDescription.concat("/n", $('body').text().replace(/\s\s+/g, ' ').trim());
     } catch (error) {
         console.error(`Error fetching content from ${url}:`, error);
     }
@@ -34,10 +36,11 @@ async function createCompletion(text) {
         const response = await openai.createCompletion({
             model: "text-davinci-003",
             prompt: "Please summarize the following text:\n\n".concat(text, "\n\nSummary:"),
-            max_tokens: 1000,
             temperature: 0,
-            n: 1,
-            stop: null,
+            max_tokens: 512,
+            top_p: 1.0,
+            frequency_penalty: 0.0,
+            presence_penalty: 0.0,
         });
         //console.log('response:', response);
         //console.log('response.data.choices:', response.data.choices);
@@ -52,6 +55,8 @@ async function createCompletion(text) {
             console.error('No choices returned by OpenAI API');
             return {
                 summary: '',
+                prompt_tokens: 0,
+                completion_tokens: 0,
                 total_tokens: 0,
             };
         }
@@ -81,6 +86,8 @@ async function createCompletion(text) {
         console.error('Error using OpenAI API:', error);
         return {
             summary: '',
+            prompt_tokens: 0,
+            completion_tokens: 0,
             total_tokens: 0,
         };
     }
