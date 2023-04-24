@@ -61,7 +61,7 @@ async function createCompletion(text) {
             };
         }
 
-        ```
+        ```response.data
         {
             "id": "cmpl-uqkvlQyYK7bGYrRHQ0eXlWi7",
             "object": "text_completion",
@@ -83,7 +83,8 @@ async function createCompletion(text) {
           }
         ```
     } catch (error) {
-        console.error('Error using OpenAI API:', error);
+        //console.error('Error using OpenAI API:', error);
+        console.error('Error using OpenAI API:', error.response);
         return {
             summary: '',
             prompt_tokens: 0,
@@ -94,7 +95,7 @@ async function createCompletion(text) {
 }
 
 async function main() {
-    const url = 'https://userpersona.dev/'; // 웹 사이트 주소를 입력하세요
+    const url = 'https://simplerlist.com/'; // 웹 사이트 주소를 입력하세요
     const content = await getWebsiteContent(url);
     /*
     const preprocessedContent = preprocessText(content);
@@ -105,6 +106,7 @@ async function main() {
     console.log(content);
     const result = await createCompletion(content);
     console.log('요약된 내용:');
+    console.log('url: ', url);
     console.log(result.summary);
     console.log('프롬프트 토큰 수:', result.prompt_tokens);
     console.log('컴플리션 토큰 수:', result.completion_tokens);
