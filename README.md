@@ -34,10 +34,8 @@ Replace `your_openai_api_key` with your actual OpenAI API key.
 
 
 ## Usage
-1. Open `index.js` and modify the `url` variable to the website URL you want to summarize.
-
-2. Run the application:
-node urlToSummarizeWithOpenAI.js
+1. Run the application:
+node webToJson.js
 
 3. The application will fetch the website content, generate a summary using OpenAI's GPT-3 engine, and print the summarized content and token usage.
 

@@ -26,7 +26,13 @@ async function getWebsiteContent(url) {
         $('script, style, noscript, iframe, img, svg, video').remove();
         // Extract meta description and text from the HTML
         const metaDescription = $('meta[name="description"]').attr('content');
-        return metaDescription.concat("/n", $('body').text().replace(/\s\s+/g, ' ').trim());
+        const titleText = $('head title').text();
+        console.log('\nURL: ', url);
+        console.log('title:', titleText);
+
+        const content = "".concat(titleText, "/n", metaDescription, "/n", $('body').text().replace(/\s\s+/g, ' ').trim());
+        console.log('content:', content);
+        return content;
     } catch (error) {
         console.error(`Error fetching content from ${url}:`, error);
     }
@@ -53,19 +59,20 @@ async function createCompletion(text) {
         });
         if (response.data.choices && response.data.choices.length > 0) {
             // Return summary and usage statistics
+
+
+            console.log('Summarized content:');
+            console.log(response.data.choices[0].text.trim());
+            console.log('Prompt tokens:', response.data.usage.prompt_tokens);
+            console.log('Completion tokens:', response.data.usage.completion_tokens);
+            console.log('Total tokens used:', response.data.usage.total_tokens);
             return {
                 summary: response.data.choices[0].text.trim(),
-                prompt_tokens: response.data.usage.prompt_tokens,
-                completion_tokens: response.data.usage.completion_tokens,
-                total_tokens: response.data.usage.total_tokens,
             };
         } else {
             console.error('No choices returned by OpenAI API');
             return {
                 summary: '',
-                prompt_tokens: 0,
-                completion_tokens: 0,
-                total_tokens: 0,
             };
         }
 
@@ -95,27 +102,26 @@ async function createCompletion(text) {
         console.error('Error using OpenAI API:', error.response);
         return {
             summary: '',
-            prompt_tokens: 0,
-            completion_tokens: 0,
-            total_tokens: 0,
         };
     }
 }
 
-// Main function
-async function main() {
-    const url = 'https://howtowrite.io/'; // Enter website URL here
-    const content = await getWebsiteContent(url);
-    console.log('Content:');
-    console.log(content);
-    const result = await createCompletion(content);
-    console.log('Summarized content:');
-    console.log('URL: ', url);
-    console.log(result.summary);
-    console.log('Prompt tokens:', result.prompt_tokens);
-    console.log('Completion tokens:', result.completion_tokens);
-    console.log('Total tokens used:', result.total_tokens);
-}
+/* Example usage:
+    async function main() {
+        const url = 'https://howtowrite.io/'; // Enter website URL here
+        const content = await getWebsiteContent(url);
+        console.log('Content:');
+        console.log(content);
+        const result = await createCompletion(content);
+        console.log('Summarized content:');
+        console.log('URL: ', url);
+        console.log(result.summary);
+    }
 
-// Call main function
-main();
+    main();
+*/
+
+module.exports = {
+    getWebsiteContent,
+    createCompletion
+};
