@@ -38,7 +38,17 @@ async function saveToMongoDB(data) {
 let browser, page;
 
 async function init() {
-  browser = await puppeteer.launch({ headless: "new" });
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: [
+      //`--proxy-server=${torProxy}`,
+      '--no-sandbox',
+      '--disable-setuid-sandbox'
+    ]
+  });
+  /*
+  browser = await puppeteer.launch({ executablePath: '/usr/bin/chromium-browser', headless: true });
+  */
   page = await browser.newPage();
 }
 
