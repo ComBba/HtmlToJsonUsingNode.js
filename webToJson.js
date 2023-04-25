@@ -4,36 +4,7 @@ const fs = require('fs');
 const puppeteer = require('puppeteer');
 
 const { getWebsiteContent, createCompletion } = require('./lib/urlToSummarizeWithOpenAI.js');
-const MongoClient = require('mongodb').MongoClient;
-
-const path = require('path');
-const dotenv = require('dotenv');
-const envPath = path.join(__dirname, '..', '.env.local');
-dotenv.config({ path: envPath });
-
-async function saveToMongoDB(data) {
-  const uri = process.env.MONGODB_CONNECTION_URI; // Replace with your MongoDB connection URI
-  const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
-
-  try {
-    await client.connect();
-    const collection = client.db(process.env.MONGODB_DATABASE_NAME).collection(process.env.MONGODB_COLLECTION_NAME);
-    const filter = { dataId: data.dataId }; // Filter using the unique dataId
-    const update = { $set: data };
-    const options = { upsert: true }; // Enable upsert
-
-    const result = await collection.updateOne(filter, update, options);
-    if (result.upsertedId) {
-      console.log(`Data inserted with ID: ${result.upsertedId._id}`);
-    } else {
-      console.log(`Data updated with ID: ${data.dataId}`);
-    }
-  } catch (err) {
-    console.error('Error saving data to MongoDB:', err);
-  } finally {
-    await client.close();
-  }
-}
+const { checkIfExistsInMongoDB, insertIntoMongoDB } = require('./lib/connectMongo.js');
 
 let browser, page;
 
@@ -79,11 +50,23 @@ async function extractData($) {
   const elements = $('div.tasks > li').toArray();
 
   for (const element of elements) {
-    await sleep(randomInRange(1000, 2000)); // 1초 대기
     const el = $(element);
+    const dataId = el.attr('data-id');
+    const dataName = el.attr('data-name');
+
+    // Check if dataId already exists in MongoDB
+    const exists = await checkIfExistsInMongoDB(dataId);
+    if (exists) {
+      // Skip this element if the dataId already exists in the database
+      console.log(`Skipping dataId ${dataId} : ${dataName} because it already exists in the database.`);
+      continue;
+    }
+    
+    await sleep(randomInRange(1000, 2000)); // 1~2초 대기
+
     const summary = await fetchAndSummarize(el.attr('data-url'));
     const data = {
-      dataId: el.attr('data-id'),
+      dataId: dataId,
       dataName: el.attr('data-name'),
       dataTask: el.attr('data-task'),
       dataUrl: el.attr('data-url'),
@@ -98,7 +81,7 @@ async function extractData($) {
     if (result.length < 20) {
       result.push(data);
     }
-    saveToMongoDB(data);
+    insertIntoMongoDB(data);
     // limit for test 
     //console.log("idxData: ", idxData++);
     //if (idxData > 2) break;
