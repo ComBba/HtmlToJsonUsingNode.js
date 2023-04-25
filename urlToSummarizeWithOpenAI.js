@@ -50,7 +50,7 @@ async function createCompletion(text) {
         const response = await openai.createCompletion({
             model: "text-davinci-003",
             // Set up prompt for the API request
-            prompt: "Please summarize the following text:\n\n".concat(text, "\n\nSummary:"),
+            prompt: "PPlease provide a condensed version of the following text, removing copyright information, contact details, and unrelated external website links while making it more concise:\n\n".concat(text, "\n\nSummary:"),
             temperature: 0.5,
             max_tokens: 1024,
             top_p: 1.0,
