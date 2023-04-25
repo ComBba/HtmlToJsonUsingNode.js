@@ -49,13 +49,13 @@ async function extractData($) {
       aiLinkHref: el.find('a.ai_link.new_tab.c_event').attr('href'),
       useCaseText: el.find('a.use_case').text().trim(),
       aiLaunchDateText: el.find('a.ai_launch_date').text().trim(),
-      imgSrc: el.find('img').attr('src'),
+      imgSrc: el.find('img').attr('src').replace(/\?height=207/, ''),
       summary: summary.summary,
       screenShot: summary.screenShot,
     };
     result.push(data);
     console.log("idxData: ", idxData++);
-    if (idxData > 20)
+    if (idxData > 27)
       break;
   }
 
