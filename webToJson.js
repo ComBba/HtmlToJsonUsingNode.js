@@ -2,7 +2,8 @@ const cheerio = require('cheerio');
 const axios = require('axios');
 const fs = require('fs');
 const puppeteer = require('puppeteer');
-const { getWebsiteContent, createCompletion } = require('./urlToSummarizeWithOpenAI.js');
+
+const { getWebsiteContent, createCompletion } = require('./lib/urlToSummarizeWithOpenAI.js');
 let browser, page;
 
 async function init() {
@@ -25,10 +26,9 @@ async function fetchAndSummarize(url) {
   } else {
     content = await fetchSiteContent(url);
   }
-  
-  const summaryResult = await createCompletion(content);
 
-  return summaryResult.summary;
+  const summaryResult = await createCompletion(content.contents);
+  return { summary: summaryResult.summary, screenShot: content.imageData };
 }
 
 var idxData = 1;
@@ -50,11 +50,12 @@ async function extractData($) {
       useCaseText: el.find('a.use_case').text().trim(),
       aiLaunchDateText: el.find('a.ai_launch_date').text().trim(),
       imgSrc: el.find('img').attr('src'),
-      summary: summary,
+      summary: summary.summary,
+      screenShot: summary.screenShot,
     };
     result.push(data);
     console.log("idxData: ", idxData++);
-    if (idxData > 10)
+    if (idxData > 2)
       break;
   }
 
@@ -104,11 +105,9 @@ async function fetchSiteContent(url) {
     console.log("\n[fetchSiteContent] url:", url);
     await page.goto(url, { waitUntil: 'networkidle2' });
     await page.waitForTimeout(5000); // 3초 대기
-    /*await page.waitForFunction(() => {
-      // 아래 조건을 원하는 로딩 완료 조건에 따라 변경해주세요.
-      // 예: 특정 요소가 페이지에 존재하는지 확인
-      return !!document.querySelector("#root > div > div > div.banner > h1");
-    }, { timeout: 300 });*/
+
+    const screenshotBuffer = await page.screenshot();
+
     const content = await page.evaluate(() => {
       const paragraphs = Array.from(document.querySelectorAll('p'));
       const title = document.querySelector('title')?.innerText;
@@ -124,12 +123,18 @@ async function fetchSiteContent(url) {
       const twitterImage = document.querySelector('meta[name="twitter:image"]')?.content;
       const pMap = paragraphs.map(p => p.innerText).join('\n');
       const contents = "".concat(title, description, keywords, ogTitle, ogDescription, ogImage, twitterTitle, twitterDescription, twitterImage, pMap,)
-      //console.log('\nURL: ', url);
+
       console.log('title:', title);
       console.log('content:', contents);
       return contents;
     });
-    return content;
+
+    return {
+      contents: content,
+      imageData: {
+        screenshot: screenshotBuffer.toString('base64')
+      }
+    };
   } catch (error) {
     console.error('Error fetching site content:', error);
     return '';
@@ -143,6 +148,6 @@ async function closeBrowser() {
 
 (async () => {
   await init();
-  await fetchAndConvertHtmlToJson('https://theresanaiforthat.com/', 'output.json');
+  await fetchAndConvertHtmlToJson('https://theresanaiforthat.com/', './data/output.json');
   await closeBrowser();
 })();

@@ -1,0 +1,30 @@
+[
+  {
+    "dataId": "3688",
+    "dataName": "Musicfy",
+    "dataTask": "Song covers",
+    "dataUrl": "https://www.musicfy.lol/",
+    "dataTaskSlug": "song-covers",
+    "aiLinkHref": "/ai/musicfy/",
+    "useCaseText": "Explore and create music covers.",
+    "aiLaunchDateText": "25 Apr 2023",
+    "imgSrc": "https://media.theresanaiforthat.com/musicfy.png?height=207",
+    "summary": {
+      "summary": "This website provides information about the importance of proper nutrition and exercise for a healthy lifestyle. It explains the benefits of eating a balanced diet, exercising regularly, and getting enough sleep to maintain physical and mental health. It also offers tips on how to stay motivated and make healthy choices."
+    }
+  },
+  {
+    "dataId": "3699",
+    "dataName": "Pico",
+    "dataTask": "Apps",
+    "dataUrl": "https://picoapps.xyz/metagpt",
+    "dataTaskSlug": "apps",
+    "aiLinkHref": "/ai/pico/",
+    "useCaseText": "Build micro-apps with natural language.",
+    "aiLaunchDateText": "25 Apr 2023",
+    "imgSrc": "https://media.theresanaiforthat.com/pico.png?height=207",
+    "summary": {
+      "summary": "This website offers a range of services and products to help businesses achieve their goals. Our team of experienced professionals can provide customized solutions for your organization, including strategy development, process improvement, and project management. We have extensive experience in the industry and can offer advice on how to optimize operations and improve efficiency. Our goal is to help you reach success with our comprehensive suite of services."
+    }
+  }
+]
