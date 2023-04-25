@@ -4,6 +4,37 @@ const fs = require('fs');
 const puppeteer = require('puppeteer');
 
 const { getWebsiteContent, createCompletion } = require('./lib/urlToSummarizeWithOpenAI.js');
+const MongoClient = require('mongodb').MongoClient;
+
+const path = require('path');
+const dotenv = require('dotenv');
+const envPath = path.join(__dirname, '..', '.env.local');
+dotenv.config({ path: envPath });
+
+async function saveToMongoDB(data) {
+  const uri = process.env.MONGODB_CONNECTION_URI; // Replace with your MongoDB connection URI
+  const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
+  try {
+    await client.connect();
+    const collection = client.db(process.env.MONGODB_DATABASE_NAME).collection(process.env.MONGODB_COLLECTION_NAME);
+    const filter = { dataId: data.dataId }; // Filter using the unique dataId
+    const update = { $set: data };
+    const options = { upsert: true }; // Enable upsert
+
+    const result = await collection.updateOne(filter, update, options);
+    if (result.upsertedId) {
+      console.log(`Data inserted with ID: ${result.upsertedId._id}`);
+    } else {
+      console.log(`Data updated with ID: ${data.dataId}`);
+    }
+  } catch (err) {
+    console.error('Error saving data to MongoDB:', err);
+  } finally {
+    await client.close();
+  }
+}
+
 let browser, page;
 
 async function init() {
@@ -31,7 +62,8 @@ async function fetchAndSummarize(url) {
   return { summary: summaryResult.summary, screenShot: content.imageData };
 }
 
-var idxData = 1;
+// limit for test 
+// var idxData = 1;
 async function extractData($) {
   const result = [];
   const elements = $('div.tasks > li').toArray();
@@ -53,10 +85,13 @@ async function extractData($) {
       summary: summary.summary,
       screenShot: summary.screenShot,
     };
-    result.push(data);
-    console.log("idxData: ", idxData++);
-    if (idxData > 27)
-      break;
+    if (result.length < 20) {
+      result.push(data);
+    }
+    saveToMongoDB(data);
+    // limit for test 
+    //console.log("idxData: ", idxData++);
+    //if (idxData > 2) break;
   }
 
   return result;

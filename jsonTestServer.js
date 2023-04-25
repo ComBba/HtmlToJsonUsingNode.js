@@ -1,24 +1,34 @@
+// app.js
 const express = require('express');
-const app = express();
 const path = require('path');
-const fs = require('fs');
+const dotenv = require('dotenv');
+const { MongoClient } = require('mongodb');
 
-// Serve static files (HTML, CSS, JS)
+dotenv.config({ path: path.join(__dirname, '.env.local') });
+
+const app = express();
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Endpoint to serve JSON data
-app.get('/data', (req, res) => {
-  const dataFilePath = path.join(__dirname, 'data', 'output.json');
-  fs.readFile(dataFilePath, 'utf8', (err, data) => {
-    if (err) {
-      res.status(500).send('Error reading JSON data');
-    } else {
-      res.json(JSON.parse(data));
-    }
-  });
+const uri = process.env.MONGODB_CONNECTION_URI;
+const dbName = process.env.MONGODB_DATABASE_NAME;
+const collectionName = process.env.MONGODB_COLLECTION_NAME;
+
+app.get('/data', async (req, res) => {
+  const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
+  try {
+    await client.connect();
+    const collection = client.db(dbName).collection(collectionName);
+    const data = await collection.find().toArray();
+    res.json(data);
+  } catch (err) {
+    res.status(500).send('Error fetching data from MongoDB');
+    console.error('Error fetching data from MongoDB:', err);
+  } finally {
+    await client.close();
+  }
 });
 
-// Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
