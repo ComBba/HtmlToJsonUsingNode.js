@@ -38,7 +38,7 @@ async function saveToMongoDB(data) {
 let browser, page;
 
 async function init() {
-  browser = await puppeteer.launch();
+  browser = await puppeteer.launch({ headless: "new" });
   page = await browser.newPage();
 }
 
