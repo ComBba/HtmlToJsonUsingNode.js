@@ -23,12 +23,23 @@ function displayGallery(data, page) {
     const galleryItem = document.createElement("div");
     galleryItem.className = "gallery-item";
 
+    const dataName = document.createElement("div");
+    dataName.innerText = item.dataName;
+    galleryItem.appendChild(dataName);
+
+    const dataTask = document.createElement("div");
+    dataTask.innerText = item.dataTask;
+    galleryItem.appendChild(dataTask);
+
     const img = document.createElement("img");
     if (!item.screenShot || item.screenShot.length < 10) {
       img.src = item.imgSrc;
     } else {
       img.src = `data:image/png;base64,${item.screenShot}`;
     }
+    img.addEventListener("click", () => {
+      window.open(item.dataUrl, '_blank');
+    });
 
     const content = document.createElement("div");
     content.className = "content";
@@ -39,6 +50,7 @@ function displayGallery(data, page) {
     gallery.appendChild(galleryItem);
   });
 }
+
 
 function setupPagination(totalItems, data) {
   const pagination = document.getElementById("pagination");
