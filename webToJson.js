@@ -9,6 +9,7 @@ const { checkIfExistsInMongoDB, insertIntoMongoDB } = require('./lib/connectMong
 let browser, page;
 
 async function init() {
+  /*
   const browser = await puppeteer.launch({
     headless: true,
     args: [
@@ -17,9 +18,8 @@ async function init() {
       '--disable-setuid-sandbox'
     ]
   });
-  /*
-  browser = await puppeteer.launch({ executablePath: '/usr/bin/chromium-browser', headless: true });
   */
+  browser = await puppeteer.launch();
   page = await browser.newPage();
 }
 
@@ -61,7 +61,7 @@ async function extractData($) {
       console.log(`Skipping dataId ${dataId} : ${dataName} because it already exists in the database.`);
       continue;
     }
-    
+
     await sleep(randomInRange(1000, 2000)); // 1~2초 대기
 
     const summary = await fetchAndSummarize(el.attr('data-url'));

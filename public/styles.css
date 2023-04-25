@@ -2,6 +2,8 @@ body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 0;
+  background-color: #282c34;
+  color: #ffffff;
 }
 
 .gallery-container {
@@ -21,15 +23,19 @@ body {
 .gallery-item {
   position: relative;
   width: 200px;
-  height: 200px;
+  height: 150px;
   margin: 10px;
   overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  background-color: #3a3d42;
 }
 
 .gallery-item img {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
+  object-fit: scale-down;
+  border-radius: 4px;
 }
 
 .gallery-item .content {
@@ -46,10 +52,33 @@ body {
   justify-content: center;
   opacity: 0;
   transition: opacity 0.3s;
+  border-radius: 4px;
+  overflow-y: scroll;
+  font-size: 80%;
 }
 
 .gallery-item:hover .content {
   opacity: 1;
+}
+
+.gallery-item .dataName, .gallery-item .dataTask {
+  position: absolute;
+  color: white;
+  font-size: 12px;
+  padding: 3px 6px;
+  border-radius: 12px;
+}
+
+.gallery-item .dataName {
+  background-color: rgba(75, 75, 75, 0.8);
+  top: 5px;
+  left: 5px;
+}
+
+.gallery-item .dataTask {
+  background-color: rgba(87, 124, 28, 0.8);
+  top: 30px;
+  left: 5px;
 }
 
 #pagination {
@@ -62,8 +91,21 @@ body {
   padding: 5px 10px;
   border: 1px solid #ccc;
   cursor: pointer;
+  background-color: #444;
+  color: #ffffff;
+  border-radius: 4px;
 }
 
 .page-button.active {
   font-weight: bold;
+  background-color: #4caf50;
+}
+
+.page-button:hover {
+  background-color: #555;
+}
+
+#data-info {
+  color: #ffffff;
+  margin-bottom: 20px;
 }
