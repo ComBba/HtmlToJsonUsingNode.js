@@ -19,7 +19,7 @@ async function init() {
     ]
   });
   */
-  browser = await puppeteer.launch();
+  browser = await puppeteer.launch({ headless: 'new' });
   page = await browser.newPage();
 }
 
@@ -39,8 +39,12 @@ async function fetchAndSummarize(url) {
     content = await fetchSiteContent(url);
   }
 
-  const summaryResult = await createCompletion(content.contents);
-  return { summary: summaryResult.summary, screenShot: content.imageData };
+  if (content.contents && content.contents.length > 0) {
+    const summaryResult = await createCompletion(content.contents);
+    return { summary: summaryResult.summary, screenShot: content.imageData };
+  } else {
+    return { summary: "", screenShot: "" };
+  }
 }
 
 // limit for test 
@@ -65,28 +69,29 @@ async function extractData($) {
     await sleep(randomInRange(1000, 2000)); // 1~2초 대기
 
     const summary = await fetchAndSummarize(el.attr('data-url'));
-    const data = {
-      dataId: dataId,
-      dataName: el.attr('data-name'),
-      dataTask: el.attr('data-task'),
-      dataUrl: el.attr('data-url'),
-      dataTaskSlug: el.attr('data-task_slug'),
-      aiLinkHref: el.find('a.ai_link.new_tab.c_event').attr('href'),
-      useCaseText: el.find('a.use_case').text().trim(),
-      aiLaunchDateText: el.find('a.ai_launch_date').text().trim(),
-      imgSrc: el.find('img').attr('src').replace(/\?height=207/, ''),
-      summary: summary.summary,
-      screenShot: summary.screenShot,
-    };
-    if (result.length < 20) {
-      result.push(data);
+    if (summary.summary && summary.summary.length > 0) {
+      const data = {
+        dataId: dataId,
+        dataName: dataName,
+        dataTask: el.attr('data-task'),
+        dataUrl: el.attr('data-url'),
+        dataTaskSlug: el.attr('data-task_slug'),
+        aiLinkHref: el.find('a.ai_link.new_tab.c_event').attr('href'),
+        useCaseText: el.find('a.use_case').text().trim(),
+        aiLaunchDateText: el.find('a.ai_launch_date').text().trim(),
+        imgSrc: el.find('img').attr('src').replace(/\?height=207/, ''),
+        summary: summary.summary,
+        screenShot: summary.screenShot,
+      };
+      if (result.length < 20) {
+        result.push(data);
+      }
+      insertIntoMongoDB(data);
+      // limit for test 
+      //console.log("idxData: ", idxData++);
+      //if (idxData > 2) break;
     }
-    insertIntoMongoDB(data);
-    // limit for test 
-    //console.log("idxData: ", idxData++);
-    //if (idxData > 2) break;
   }
-
   return result;
 }
 

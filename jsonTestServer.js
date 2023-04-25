@@ -16,7 +16,7 @@ const collectionName = process.env.MONGODB_COLLECTION_NAME;
 app.get('/data', async (req, res) => {
   const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
-  try {
+  try { 
     await client.connect();
     const collection = client.db(dbName).collection(collectionName);
     const data = await collection.find().toArray();
