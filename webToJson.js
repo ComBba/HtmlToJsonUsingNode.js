@@ -55,7 +55,7 @@ async function extractData($) {
     };
     result.push(data);
     console.log("idxData: ", idxData++);
-    if (idxData > 2)
+    if (idxData > 20)
       break;
   }
 
@@ -131,9 +131,7 @@ async function fetchSiteContent(url) {
 
     return {
       contents: content,
-      imageData: {
-        screenshot: screenshotBuffer.toString('base64')
-      }
+      imageData: screenshotBuffer.toString('base64'),
     };
   } catch (error) {
     console.error('Error fetching site content:', error);
