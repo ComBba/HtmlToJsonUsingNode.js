@@ -22,6 +22,9 @@ function displayGallery(data, page) {
   data.slice(start, end).forEach((item) => {
     const galleryItem = document.createElement("div");
     galleryItem.className = "gallery-item";
+    galleryItem.addEventListener("click", () => {
+      window.open(item.dataUrl, '_blank');
+    });
 
     const dataName = document.createElement("div");
     dataName.innerText = item.dataName;
@@ -37,10 +40,6 @@ function displayGallery(data, page) {
     } else {
       img.src = `data:image/png;base64,${item.screenShot}`;
     }
-    img.addEventListener("click", () => {
-      window.open(item.dataUrl, '_blank');
-    });
-
     const content = document.createElement("div");
     content.className = "content";
     content.innerText = item.summary;
