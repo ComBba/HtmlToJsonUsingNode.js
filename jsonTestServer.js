@@ -15,12 +15,19 @@ const collectionName = process.env.MONGODB_COLLECTION_NAME;
 
 app.get('/data', async (req, res) => {
   const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+  const page = parseInt(req.query.page) || 1;
+  const itemsPerPage = 9;
 
-  try { 
+  try {
     await client.connect();
     const collection = client.db(dbName).collection(collectionName);
-    const data = await collection.find().toArray();
-    res.json(data);
+
+    const totalItems = await collection.countDocuments();
+    const data = await collection.find()
+      .skip((page - 1) * itemsPerPage)
+      .limit(itemsPerPage)
+      .toArray();
+    res.json({ data, totalItems });
   } catch (err) {
     res.status(500).send('Error fetching data from MongoDB');
     console.error('Error fetching data from MongoDB:', err);

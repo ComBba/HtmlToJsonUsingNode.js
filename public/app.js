@@ -1,27 +1,31 @@
 const itemsPerPage = 9;
 let currentPage = 1;
+let paginationInitialized = false; // 추가된 부분
 
-fetch('/data')
-  .then((response) => response.json())
-  .then((data) => {
-    const totalItems = data.length;
-    displayGallery(data, currentPage);
-    setupPagination(totalItems, data);
-    displayDataInfo(totalItems, currentPage);
-  })
-  .catch((error) => {
-    console.error('Error fetching JSON data:', error);
-  });
+fetchData(currentPage);
 
+function fetchData(page) {
+  fetch(`/data?page=${page}`)
+    .then((response) => response.json())
+    .then(({ data, totalItems }) => {
+      displayGallery(data, currentPage);
+      if (!paginationInitialized) { // 추가된 부분
+        setupPagination(totalItems);
+        paginationInitialized = true;
+      }
+      updatePagination();
+      updateDataInfo(totalItems, currentPage); // 추가된 부분
+    })
+    .catch((error) => {
+      console.error("Error fetching JSON data:", error);
+    });
+}
 
 function displayGallery(data, page) {
   const gallery = document.getElementById("gallery");
   gallery.innerHTML = "";
 
-  const start = (page - 1) * itemsPerPage;
-  const end = start + itemsPerPage;
-
-  data.slice(start, end).forEach((item) => {
+  data.forEach((item) => {
     const galleryItem = document.createElement("div");
     galleryItem.className = "gallery-item";
     galleryItem.addEventListener("click", () => {
@@ -57,21 +61,39 @@ function displayGallery(data, page) {
   });
 }
 
+function setupPagination(totalItems) {
+  const pagination = document.getElementById("pagination");
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
 
-function createPageButton(i, data) {
+  pagination.innerHTML = "";
+
+  for (let i = 1; i <= totalPages; i++) {
+    const pageButton = document.createElement("span");
+    pageButton.className = "page-button";
+    pageButton.innerText = i;
+    pageButton.addEventListener("click", () => {
+      currentPage = i;
+      fetchData(currentPage);
+    });
+
+    pagination.appendChild(pageButton);
+  }
+}
+
+function createPageButton(i) {
   const pageButton = document.createElement("span");
   pageButton.className = "page-button";
   pageButton.innerText = i;
   pageButton.addEventListener("click", () => {
     currentPage = i;
-    displayGallery(data, currentPage);
+    fetchData(currentPage); // 수정된 부분
     updatePagination();
   });
 
   return pageButton;
 }
 
-function displayPaginationButtons(start, end, totalPages, data) {
+function displayPaginationButtons(start, end, totalPages) {
   const pagination = document.getElementById("pagination");
   pagination.innerHTML = "";
 
@@ -82,17 +104,15 @@ function displayPaginationButtons(start, end, totalPages, data) {
     if (currentPage > 1) {
       const newStart = Math.max(start - 10, 1);
       const newEnd = newStart + 9;
-      displayPaginationButtons(newStart, newEnd, totalPages, data);
+      displayPaginationButtons(newStart, newEnd, totalPages);
       currentPage = Math.max(currentPage - 10, 1);
-      displayGallery(data, currentPage);
-      updatePagination();
-      displayDataInfo(data.length, currentPage);
+      fetchData(currentPage);
     }
   });
   pagination.appendChild(prevButton);
 
   for (let i = start; i <= end && i <= totalPages; i++) {
-    const pageButton = createPageButton(i, data);
+    const pageButton = createPageButton(i);
     pagination.appendChild(pageButton);
   }
 
@@ -103,15 +123,14 @@ function displayPaginationButtons(start, end, totalPages, data) {
     if (currentPage < totalPages) {
       const newStart = Math.min(end + 1, totalPages);
       const newEnd = Math.min(end + 10, totalPages);
-      displayPaginationButtons(newStart, newEnd, totalPages, data);
+      displayPaginationButtons(newStart, newEnd, totalPages);
       currentPage = Math.min(currentPage + 10, totalPages);
-      displayGallery(data, currentPage);
-      updatePagination();
-      displayDataInfo(data.length, currentPage);
+      fetchData(currentPage);
     }
   });
   pagination.appendChild(nextButton);
 }
+
 
 function displayDataInfo(totalItems, currentPage) {
   const dataInfo = document.getElementById("data-info");
@@ -136,4 +155,11 @@ function updatePagination() {
       button.classList.remove("active");
     }
   });
+}
+
+function updateDataInfo(totalItems, page) {
+  const start = (page - 1) * itemsPerPage + 1;
+  const end = Math.min(page * itemsPerPage, totalItems);
+  const dataInfo = document.getElementById("data-info");
+  dataInfo.innerText = `Displaying items ${start} - ${end} of ${totalItems}`;
 }
