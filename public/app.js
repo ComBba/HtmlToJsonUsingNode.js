@@ -4,8 +4,13 @@ let paginationInitialized = false; // 추가된 부분
 
 fetchData(currentPage);
 
-function fetchData(page) {
-  fetch(`/data?page=${page}`)
+let searchInput = document.getElementById("search-input");
+searchInput.addEventListener("input", () => {
+  fetchData(currentPage, searchInput.value);
+});
+
+function fetchData(page, query = "") {
+  fetch(`/data?page=${page}&query=${encodeURIComponent(query)}`)
     .then((response) => response.json())
     .then(({ data, totalItems }) => {
       displayGallery(data, currentPage);

@@ -17,13 +17,28 @@ app.get('/data', async (req, res) => {
   const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
   const page = parseInt(req.query.page) || 1;
   const itemsPerPage = 9;
+  const query = req.query.query || "";
 
   try {
     await client.connect();
     const collection = client.db(dbName).collection(collectionName);
 
-    const totalItems = await collection.countDocuments();
-    const data = await collection.find()
+    // Modify the find() method to include the search query
+    const searchQuery = query
+      ? {
+        $or: [
+          { dataUrl: { $regex: query, $options: "i" } },
+          { dataName: { $regex: query, $options: "i" } },
+          { dataTask: { $regex: query, $options: "i" } },
+          { slug: { $regex: query, $options: "i" } },
+          { content: { $regex: query, $options: "i" } },
+          { summary: { $regex: query, $options: "i" } },
+        ],
+      }
+      : {};
+
+    const totalItems = await collection.countDocuments(searchQuery);
+    const data = await collection.find(searchQuery)
       .skip((page - 1) * itemsPerPage)
       .limit(itemsPerPage)
       .toArray();

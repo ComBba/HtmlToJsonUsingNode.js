@@ -1,3 +1,27 @@
+/* Add this to your app.css */
+header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin: 10px 0; /* Add margin-top and margin-bottom */
+}
+
+#search-input {
+  width: 50%;
+  max-width: 500px;
+  padding: 8px 12px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+#search-input:focus {
+  border-color: #007bff;
+}
+
 body {
   font-family: Arial, sans-serif;
   margin: 0;
