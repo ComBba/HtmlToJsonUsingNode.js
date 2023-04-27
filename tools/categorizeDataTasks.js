@@ -5,12 +5,12 @@ const natural = require('natural');
 const tokenizer = new natural.WordTokenizer();
 
 async function categorizeDataTask(dataTasks) {
-    const systemContent = "You are a helpful assistant that categorizes data tasks into 20 or fewer categories.";
+    const systemContent = "You are a helpful assistant that categorizes data tasks.";
     const userContent = "Please categorize the following data tasks into one of 20 or fewer categories: ";
 
-    // Tokenize the input text and limit to 3000 tokens
+    // Tokenize the input text and limit to 3500 tokens
     const tokens = tokenizer.tokenize(dataTasks);
-    const limitedTokens = tokens.slice(0, 3000);
+    const limitedTokens = tokens.slice(0, 3500);
     const limitedDataTask = limitedTokens.join(' ');
 
     try {
