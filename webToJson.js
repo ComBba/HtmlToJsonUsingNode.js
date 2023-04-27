@@ -47,6 +47,11 @@ async function fetchAndSummarize(url) {
   }
 }
 
+function convertToTimestamp(dateString) {
+  const date = new Date(dateString);
+  return date.getTime();
+}
+
 // limit for test 
 // var idxData = 1;
 async function extractData($) {
@@ -79,6 +84,7 @@ async function extractData($) {
         aiLinkHref: el.find('a.ai_link.new_tab.c_event').attr('href'),
         useCaseText: el.find('a.use_case').text().trim(),
         aiLaunchDateText: el.find('a.ai_launch_date').text().trim(),
+        aiLaunchDateTimestamp: convertToTimestamp(el.find('a.ai_launch_date').text().trim()), // TimeStamp로 추가
         imgSrc: el.find('img').attr('src').replace(/\?height=207/, ''),
         summary: summary.summary,
         screenShot: summary.screenShot,
