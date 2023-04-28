@@ -1,24 +1,16 @@
+//webToJson.js
 const cheerio = require('cheerio');
 const axios = require('axios');
 const fs = require('fs');
 const puppeteer = require('puppeteer');
 
-const { getWebsiteContent, createCompletion } = require('./lib/urlToSummarizeWithOpenAI.js');
+const { getWebsiteContent, createUrlToSummarizeCompletion } = require('./lib/urlToSummarizeWithOpenAI.js');
 const { checkIfExistsInMongoDB, insertIntoMongoDB } = require('./lib/connectMongo.js');
+const { createCompletion } = require('./lib/openaiHelper.js');
 
 let browser, page;
 
 async function init() {
-  /*
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: [
-      //`--proxy-server=${torProxy}`,
-      '--no-sandbox',
-      '--disable-setuid-sandbox'
-    ]
-  });
-  */
   browser = await puppeteer.launch({ headless: 'new' });
   page = await browser.newPage();
 }
@@ -40,7 +32,7 @@ async function fetchAndSummarize(url) {
   }
 
   if (content.contents && content.contents.length > 0) {
-    const summaryResult = await createCompletion(content.contents);
+    const summaryResult = await createUrlToSummarizeCompletion(content.contents);
     return { summary: summaryResult.summary, screenShot: content.imageData };
   } else {
     return { summary: "", screenShot: "" };
@@ -52,8 +44,22 @@ function convertToTimestamp(dateString) {
   return date.getTime();
 }
 
-// limit for test 
-// var idxData = 1;
+async function categorizeDataTask(dataTask, useCaseText, summary) {
+  const systemContent = "You are a helpful assistant that categorizes data.";
+  const userContent = "Please categorize the following data task into one of the following categories and respond in the format 'Category: {category_name}': Speeches, Images, Data Analysis, Videos, NLP, Chatbots, Frameworks, Education, Health, Financial Services, Logistics, Gaming, Human Resources, CRM, Contents Creation, Automation, Cybersecurity, Social Media, Environment, Smart Cities: ";
+
+  const inputText = `${dataTask} ${useCaseText} ${summary}`;
+
+  try {
+      const response = await createCompletion(inputText, systemContent, userContent);
+      const category = response.messageContent;
+      return category;
+  } catch (error) {
+      console.error('Error categorizing dataTask:', error);
+      return '';
+  }
+}
+
 async function extractData($) {
   const result = [];
   const elements = $('div.tasks > li').toArray();
@@ -74,28 +80,31 @@ async function extractData($) {
     await sleep(randomInRange(1000, 2000)); // 1~2초 대기
 
     const summary = await fetchAndSummarize(el.attr('data-url'));
+
+    const dataTask = el.attr('data-task');
+    const useCaseText = el.find('a.use_case').text().trim();
+    const categoryWithPrefix = await categorizeDataTask(dataTask, useCaseText, summary);
+    const category = categoryWithPrefix.split(': ')[1];
     if (summary.summary && summary.summary.length > 0) {
       const data = {
         dataId: dataId,
         dataName: dataName,
-        dataTask: el.attr('data-task'),
+        dataTask: dataTask,
         dataUrl: el.attr('data-url'),
         dataTaskSlug: el.attr('data-task_slug'),
         aiLinkHref: el.find('a.ai_link.new_tab.c_event').attr('href'),
-        useCaseText: el.find('a.use_case').text().trim(),
+        useCaseText: useCaseText,
         aiLaunchDateText: el.find('a.ai_launch_date').text().trim(),
         aiLaunchDateTimestamp: convertToTimestamp(el.find('a.ai_launch_date').text().trim()), // TimeStamp로 추가
         imgSrc: el.find('img').attr('src').replace(/\?height=207/, ''),
         summary: summary.summary,
         screenShot: summary.screenShot,
+        category: category,
       };
       if (result.length < 20) {
         result.push(data);
       }
       insertIntoMongoDB(data);
-      // limit for test 
-      //console.log("idxData: ", idxData++);
-      //if (idxData > 2) break;
     }
   }
   return result;
