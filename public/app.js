@@ -1,3 +1,4 @@
+//public/apps.js
 const itemsPerPage = 9;
 let currentPage = 1;
 
@@ -6,7 +7,6 @@ fetchData(currentPage);
 const searchInput = document.getElementById("search-input");
 searchInput.addEventListener("input", onSearchInput);
 
-// Add this function to your app.js
 function onSearchInput(event) {
   const searchQuery = event.target.value;
   currentPage = 1;
@@ -54,11 +54,15 @@ function displayGallery(data, page) {
     galleryItem.appendChild(dataTask);
 
     const img = document.createElement("img");
+     img.src = `/image/${item.dataId}`;
+     
+    /*
     if (!item.screenShot || item.screenShot.length < 10) {
       img.src = item.imgSrc;
     } else {
       img.src = `data:image/png;base64,${item.screenShot}`;
     }
+    */
     const content = document.createElement("div");
     content.className = "content";
     content.innerText = item.summary;

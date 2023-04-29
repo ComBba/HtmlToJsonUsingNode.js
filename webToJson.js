@@ -3,6 +3,7 @@ const cheerio = require('cheerio');
 const axios = require('axios');
 const fs = require('fs');
 const puppeteer = require('puppeteer');
+const sharp = require('sharp');
 
 const { getWebsiteContent, createUrlToSummarizeCompletion } = require('./lib/urlToSummarizeWithOpenAI.js');
 const { checkIfExistsInMongoDB, insertIntoMongoDB } = require('./lib/connectMongo.js');
@@ -51,12 +52,12 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
   const inputText = `${dataTask} ${useCaseText} ${summary}`;
 
   try {
-      const response = await createCompletion(inputText, systemContent, userContent);
-      const category = response.messageContent;
-      return category;
+    const response = await createCompletion(inputText, systemContent, userContent);
+    const category = response.messageContent;
+    return category;
   } catch (error) {
-      console.error('Error categorizing dataTask:', error);
-      return '';
+    console.error('Error categorizing dataTask:', error);
+    return '';
   }
 }
 
@@ -153,8 +154,22 @@ async function fetchSiteContent(url) {
     console.log("\n[fetchSiteContent] url:", url);
     await page.goto(url, { waitUntil: 'networkidle2' });
     await page.waitForTimeout(5000); // 5초 대기
+    // 페이지 뷰포트 크기 설정
+    await page.setViewport({ width: 915, height: 750 });
 
-    const screenshotBuffer = await page.screenshot();
+    const screenshotBuffer = await page.screenshot({
+      clip: {
+        x: 0,
+        y: 0,
+        width: 915,
+        height: 750,
+      },
+    });
+
+    // 압축하고 JPEG 형식으로 변환
+    const compressedBuffer = await sharp(screenshotBuffer)
+      .jpeg({ quality: 70 }) // JPEG 품질 설정, 0-100 (낮은 값일수록 더 많이 압축됩니다)
+      .toBuffer();
 
     const content = await page.evaluate(() => {
       const paragraphs = Array.from(document.querySelectorAll('p'));
@@ -179,7 +194,7 @@ async function fetchSiteContent(url) {
 
     return {
       contents: content,
-      imageData: screenshotBuffer.toString('base64'),
+      imageData: compressedBuffer.toString('base64'),
     };
   } catch (error) {
     console.error('Error fetching site content:', error);
