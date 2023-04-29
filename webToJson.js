@@ -44,19 +44,22 @@ function convertToTimestamp(dateString) {
   return date.getTime();
 }
 
+function removeDots(text) {
+  return text.replace(/\./g, '');
+}
+
 async function categorizeDataTask(dataTask, useCaseText, summary) {
   const systemContent = "You are a helpful assistant that categorizes data.";
-  const userContent = "Please categorize the following data task into one of the following categories and respond in the format 'Category: {category_name}': Speeches, Images, Data Analysis, Videos, NLP, Chatbots, Frameworks, Education, Health, Financial Services, Logistics, Gaming, Human Resources, CRM, Contents Creation, Automation, Cybersecurity, Social Media, Environment, Smart Cities: ";
-
+  const userContent = "do not asum, rank the top 3 categories from the following list for the given data task and respond in the format '1: {category_name_1}, 2: {category_name_2}, 3: {category_name_3}': Speeches, Images, Data Analysis, Videos, NLP, Chatbots, Frameworks, Education, Health, Financial Services, Logistics, Gaming, Human Resources, CRM, Contents Creation, Automation, Cybersecurity, Social Media, Environment, Smart Cities: ";
   const inputText = `${dataTask} ${useCaseText} ${summary}`;
 
   try {
-      const response = await createCompletion(inputText, systemContent, userContent);
-      const category = response.messageContent;
-      return category;
+    const response = await createCompletion(inputText, systemContent, userContent);
+    const category = removeDots(response.messageContent);
+    return category;
   } catch (error) {
-      console.error('Error categorizing dataTask:', error);
-      return '';
+    console.error('Error categorizing dataTask:', error);
+    return '';
   }
 }
 
@@ -84,7 +87,12 @@ async function extractData($) {
     const dataTask = el.attr('data-task');
     const useCaseText = el.find('a.use_case').text().trim();
     const categoryWithPrefix = await categorizeDataTask(dataTask, useCaseText, summary);
-    const category = categoryWithPrefix.split(': ')[1];
+    const Category1st = categoryWithPrefix.split(', ')[0].split(': ')[1];
+    const Category2nd = categoryWithPrefix.split(', ')[1].split(': ')[1];
+    const Category3rd = categoryWithPrefix.split(', ')[2].split(': ')[1];
+    const category = "".concat(Category1st, ".", Category2nd, ".", Category3rd);
+    console.log("[category]", category, "[categoryWithPrefix]", categoryWithPrefix)
+
     if (summary.summary && summary.summary.length > 0) {
       const data = {
         dataId: dataId,
@@ -100,6 +108,9 @@ async function extractData($) {
         summary: summary.summary,
         screenShot: summary.screenShot,
         category: category,
+        Category1st: Category1st,
+        Category2nd: Category2nd,
+        Category3rd: Category3rd,
       };
       if (result.length < 20) {
         result.push(data);
