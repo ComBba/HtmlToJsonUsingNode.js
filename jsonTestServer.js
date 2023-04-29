@@ -36,7 +36,8 @@ app.get('/data', async (req, res) => {
         { dataTask: pattern },
         { dataUrl: pattern },
         { summary: pattern },
-        { useCaseText: pattern }
+        { useCaseText: pattern },
+        { category: pattern },
       ]
     };
 
