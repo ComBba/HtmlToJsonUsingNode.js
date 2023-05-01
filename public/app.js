@@ -57,6 +57,12 @@ function displayGallery(data, page) {
     dataTask.innerText = item.dataTask;
     galleryItem.appendChild(dataTask);
 
+    // Add this block to create a favicon element and append it to the gallery item
+    const favicon = document.createElement("img");
+    favicon.src = `data:image/png;base64,${item.favicon}`; // Use the actual base64 favicon from the database
+    favicon.className = "favicon"; // Add a class to style the favicon
+    galleryItem.appendChild(favicon);
+
     const img = document.createElement("img");
     img.src = `/image/${item.dataId}`;
 

@@ -53,6 +53,8 @@ body {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   border-radius: 4px;
   background-color: #3a3d42;
+  padding-bottom: 20px;
+  /* 추가 */
 }
 
 .gallery-item img {
@@ -95,9 +97,26 @@ body {
 }
 
 .gallery-item .dataName {
+  position: absolute;
+  color: white;
+  font-size: 12px;
+  padding: 3px 6px;
+  border-radius: 12px;
   background-color: rgba(75, 75, 75, 0.8);
   top: 5px;
+  left: 25px;
+  /* 수정: 왼쪽 위치 조정 */
+}
+
+.gallery-item .favicon {
+  width: 16px;
+  height: 16px;
+  position: absolute;
+  top: 7px;
+  /* 수정: 상단 위치 조정 */
   left: 5px;
+  /* 수정: 왼쪽 위치 조정 */
+  border: 1px solid black;
 }
 
 .gallery-item .dataTask {
@@ -105,6 +124,7 @@ body {
   top: 30px;
   left: 5px;
 }
+
 
 #pagination {
   margin: 20px;
