@@ -159,7 +159,7 @@ async function fetchAndConvertHtmlToJson(url, outputFile) {
 async function fetchSiteContent(url) {
   try {
     console.log("\n[fetchSiteContent] url:", url);
-    await page.goto(url, { waitUntil: 'networkidle2' });
+    const response = await page.goto(url, { waitUntil: 'networkidle2' });
     await page.waitForTimeout(5000); // 5초 대기
 
     if (response.status() === 404 || response.status() === 500) {
