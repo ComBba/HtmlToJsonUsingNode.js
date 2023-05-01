@@ -60,7 +60,7 @@ app.get('/data', async (req, res) => {
 
     console.log('Fetching data from MongoDB');
     const totalItems = await collection.countDocuments(searchQuery ? query : {});
-    console.log('Number of data with MongoDB query.');
+    console.log('Number of data with MongoDB query:', totalItems);
     const data = await collection.find(searchQuery ? query : {}, { projection: { dataId: 1, dataName: 1, dataTask: 1, dataUrl: 1, summary: 1, useCaseText: 1 } })
       .skip((page - 1) * itemsPerPage)
       .limit(itemsPerPage)
