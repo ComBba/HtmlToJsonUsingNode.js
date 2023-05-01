@@ -1,3 +1,4 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 
@@ -6,16 +7,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Website Summaries Gallery</title>
   <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/masonry/4.2.2/masonry.pkgd.js"
+    integrity="sha512-bkge924rHvzs8HYzPSjoL47QZU0PYng6QsMuo3xxmEtCeGsfIeDl6t4ATj+NxwUbwOEYKsGO8A5zIAkMXP+cHQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 
 <body>
   <header>
     <input type="text" id="search-input" placeholder="Search..." />
   </header>
-  <div class="gallery-container">
-    <div class="gallery-items-container" id="gallery"></div>
-    <div id="pagination"></div>
+  <center>
     <div id="data-info"></div>
+    <div id="pagination"></div>
+  </center>
+  <div class="gallery-container">
+    <div class="grid gallery-items-container"
+      data-masonry='{ "itemSelector": ".gallery-item", "columnWidth": 200, "originLeft": true, "originTop": true, "horizontalOrder": true }'
+      id="gallery"></div>
   </div>
   <script src="app.js"></script>
 </body>

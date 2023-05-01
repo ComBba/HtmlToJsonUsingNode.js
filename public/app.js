@@ -1,4 +1,4 @@
-//public/apps.js
+// public/app.js
 const itemsPerPage = 9;
 let currentPage = 1;
 
@@ -34,7 +34,7 @@ function displayGallery(data, page) {
   const gallery = document.getElementById("gallery");
   gallery.innerHTML = "";
 
-  const totalItems = data.length; // Moved outside the forEach loop
+  const totalItems = data.length;
 
   data.forEach((item) => {
     const galleryItem = document.createElement("div");
@@ -42,7 +42,11 @@ function displayGallery(data, page) {
     galleryItem.addEventListener("click", () => {
       window.open(item.dataUrl, '_blank');
     });
-
+    /*
+    // 높이를 100px 범위 내에서 10px 단위로 랜덤하게 설정
+    const randomHeight = Math.floor(Math.random() * 11) * 10; // 0 ~ 100 사이의 10의 배수
+    galleryItem.style.height = `${200 + randomHeight}px`; // 기본 높이에 랜덤 높이를 더함
+    */
     const dataName = document.createElement("div");
     dataName.className = "dataName";
     dataName.innerText = item.dataName;
@@ -54,15 +58,8 @@ function displayGallery(data, page) {
     galleryItem.appendChild(dataTask);
 
     const img = document.createElement("img");
-     img.src = `/image/${item.dataId}`;
-     
-    /*
-    if (!item.screenShot || item.screenShot.length < 10) {
-      img.src = item.imgSrc;
-    } else {
-      img.src = `data:image/png;base64,${item.screenShot}`;
-    }
-    */
+    img.src = `/image/${item.dataId}`;
+
     const content = document.createElement("div");
     content.className = "content";
     content.innerText = item.summary;
@@ -86,7 +83,7 @@ function updatePagination(totalItems, searchQuery = "") {
   const end = Math.min(start + 9, totalPages);
 
   displayPaginationButtons(start, end, totalPages, searchQuery);
-  setActivePageButton(); // Add this line to update the active page button
+  setActivePageButton();
 }
 
 function createPageButton(i, searchQuery) {
