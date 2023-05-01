@@ -12,7 +12,7 @@ const { createCompletion } = require('./lib/openaiHelper.js');
 let browser, page;
 
 async function init() {
-  browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+  browser = await puppeteer.launch({ headless: "new" });
   page = await browser.newPage();
 }
 
@@ -49,6 +49,23 @@ function removeDots(text) {
   return text.replace(/\./g, '');
 }
 
+function shuffle(array) {
+  let currentIndex = array.length, temporaryValue, randomIndex;
+
+  // While there remain elements to shuffle
+  while (0 !== currentIndex) {
+    // Pick a remaining element
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex -= 1;
+
+    // And swap it with the current element
+    temporaryValue = array[currentIndex];
+    array[currentIndex] = array[randomIndex];
+    array[randomIndex] = temporaryValue;
+  }
+
+  return array;
+}
 async function categorizeDataTask(dataTask, useCaseText, summary) {
   const systemContent = "You are a helpful assistant that categorizes data.";
   const userContent = "do not asum, rank the top 3 categories from the following list for the given data task and respond in the format '1: {category_name_1}, 2: {category_name_2}, 3: {category_name_3}': Speeches, Images, Data Analysis, Videos, NLP, Chatbots, Frameworks, Education, Health, Financial Services, Logistics, Gaming, Human Resources, CRM, Contents Creation, Automation, Cybersecurity, Social Media, Environment, Smart Cities: ";
@@ -67,8 +84,8 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
 async function extractData($) {
   const result = [];
   const elements = $('div.tasks > li').toArray();
-
-  for (const element of elements) {
+  const shuffledElements = shuffle(elements);
+  for (const element of shuffledElements) {
     const el = $(element);
     const dataId = el.attr('data-id');
     const dataName = el.attr('data-name');
@@ -77,7 +94,7 @@ async function extractData($) {
     const exists = await checkIfExistsInMongoDB(dataId);
     if (exists) {
       // Skip this element if the dataId already exists in the database
-      console.log(`Skipping dataId ${dataId} : ${dataName} because it already exists in the database.`);
+      console.log(`[Skip][Exists] dataId ${dataId} : ${dataName}`);
       continue;
     }
 
@@ -88,12 +105,13 @@ async function extractData($) {
     const dataTask = el.attr('data-task');
     const useCaseText = el.find('a.use_case').text().trim();
     const categoryWithPrefix = await categorizeDataTask(dataTask, useCaseText, summary);
+    console.log("[categoryWithPrefix]", categoryWithPrefix);
     const Category1st = categoryWithPrefix.split(', ')[0].split(': ')[1];
     const Category2nd = categoryWithPrefix.split(', ')[1].split(': ')[1];
     const Category3rd = categoryWithPrefix.split(', ')[2].split(': ')[1];
+    console.log("[Category1st]", Category1st, "\n", "[Category2nd]", Category2nd, "\n", "[Category3rd]", Category3rd);
     const category = "".concat(Category1st, ".", Category2nd, ".", Category3rd);
-    console.log("[category]", category, "[categoryWithPrefix]", categoryWithPrefix)
-
+    
     if (summary.summary && summary.summary.length > 0) {
       const data = {
         dataId: dataId,
@@ -163,10 +181,11 @@ async function fetchAndConvertHtmlToJson(url, outputFile) {
 async function fetchSiteContent(url) {
   try {
     console.log("\n[fetchSiteContent] url:", url);
-    // 페이지 뷰포트 크기 설정
-    await page.setViewport({ width: 915, height: 750 });
     await page.goto(url, { waitUntil: 'networkidle2' });
     await page.waitForTimeout(5000); // 5초 대기
+
+    // 페이지 뷰포트 크기 설정
+    await page.setViewport({ width: 915, height: 750 });
 
     const screenshotBuffer = await page.screenshot({
       clip: {
