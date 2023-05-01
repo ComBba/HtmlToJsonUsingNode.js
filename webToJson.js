@@ -27,7 +27,7 @@ async function fetchAndSummarize(url) {
   const content = await fetchSiteContent(url);
   if (content.contents?.length > 0) {
     const summaryResult = await createUrlToSummarizeCompletion(content.contents);
-    return { summary: summaryResult.summary, screenShot: content.imageData };
+    return { summary: summaryResult.summary, screenShot: content.imageData, favicon: content.faviconData };
   } else {
     return { summary: "", screenShot: "" };
   }
@@ -117,6 +117,7 @@ async function extractData($) {
         Category1st: Category1st,
         Category2nd: Category2nd,
         Category3rd: Category3rd,
+        favicon: summary.favicon,
       };
       if (result.length < 20) {
         result.push(data);
@@ -160,9 +161,10 @@ async function fetchSiteContent(url) {
   try {
     console.log("\n[fetchSiteContent] url:", url);
     const response = await page.goto(url, { waitUntil: 'networkidle2' });
+    console.log("5초 대기 중.....")
     await page.waitForTimeout(5000); // 5초 대기
 
-    if (response.status() === 404 || response.status() === 500) {
+    if (response?.status() === 404 || response?.status() === 500) {
       console.error(`Error: ${response.status()} occurred while fetching the content from ${url}`);
       return '';
     }
@@ -180,6 +182,28 @@ async function fetchSiteContent(url) {
     const compressedBuffer = await sharp(screenshotBuffer)
       .jpeg({ quality: 70 }) // JPEG 품질 설정, 0-100 (낮은 값일수록 더 많이 압축됩니다)
       .toBuffer();
+    console.log('[compressedBuffer]', screenshotBuffer.length, '=>', compressedBuffer.length);
+
+    const faviconUrl = await page.$$eval('link[rel="icon"]', links => {
+      const href = links && links[0] && links[0].href;
+      console.log('[faviconUrl]', href);
+      return href && (href.startsWith('http') ? href : `${location.origin}${href}`);
+    });
+
+    let faviconData = null;
+    if (faviconUrl) {
+      // 수정된 부분: favicon 이미지를 base64로 변환
+      const response = await axios.get(faviconUrl, {
+        responseType: 'arraybuffer',
+      });
+
+      if (response.status === 200) {
+        const buffer = Buffer.from(response.data, 'binary');
+        faviconData = buffer.toString('base64');
+      } else {
+        console.error(`Error: ${response.status} occurred while fetching the favicon from ${faviconUrl}`);
+      }
+    }
 
     const content = await page.evaluate((url) => {
       const paragraphs = Array.from(document.querySelectorAll('p'));
@@ -208,6 +232,7 @@ async function fetchSiteContent(url) {
     return {
       contents: content,
       imageData: compressedBuffer.toString('base64'),
+      faviconData: faviconData,
     };
   } catch (error) {
     console.error('Error fetching site content:', error);
