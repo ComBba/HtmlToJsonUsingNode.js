@@ -1,5 +1,5 @@
 //twitterAiLinkCollector.js
-const openai = require('../lib/openaiHelper'); // 수정된 부분
+const openai = require('../lib/openaiHelper');
 const axios = require('axios');
 const { MongoClient } = require('mongodb');
 const path = require('path');
