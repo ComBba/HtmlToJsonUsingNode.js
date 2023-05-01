@@ -46,7 +46,7 @@ async function generateValidCompletion(inputText, systemContent, userContent) {
   if (isValidFormatForCategory(response.messageContent)) {
     return response;
   } else {
-    console.log("[CategoryValidation][XXXXX] :", response.messageContent);
+    console.log("[CategoryValidation][XXXXX] :", response.messageContent, "\n", "[inputText]", inputText);
     return await generateValidCompletion(inputText, systemContent, userContent);
   }
 }
@@ -88,7 +88,7 @@ async function extractData($) {
 
     const dataTask = el.attr('data-task');
     const useCaseText = el.find('a.use_case').text().trim();
-    const categoryWithPrefix = await categorizeDataTask(dataTask, useCaseText, summary);
+    const categoryWithPrefix = await categorizeDataTask(dataTask, useCaseText, summary.summary);
     console.log("[categoryWithPrefix]", categoryWithPrefix);
     const Category1st = categoryWithPrefix.split(', ')[0].split(': ')[1];
     const Category2nd = categoryWithPrefix.split(', ')[1].split(': ')[1];
