@@ -18,6 +18,10 @@ let browser, page;
 async function init() {
   browser = await puppeteer.launch({ headless: "new" });
   page = await browser.newPage();
+  // Set User-Agent to Chrome on PC
+  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.63 Safari/537.36');
+  // 페이지 뷰포트 크기 설정
+  await page.setViewport({ width: VIEWPORT_WIDTH, height: VIEWPORT_HEIGHT });
 }
 async function fetchAndSummarize(url) {
   const content = await fetchSiteContent(url);
@@ -156,9 +160,6 @@ async function fetchSiteContent(url) {
     console.log("\n[fetchSiteContent] url:", url);
     await page.goto(url, { waitUntil: 'networkidle2' });
     await page.waitForTimeout(5000); // 5초 대기
-
-    // 페이지 뷰포트 크기 설정
-    await page.setViewport({ width: VIEWPORT_WIDTH, height: VIEWPORT_HEIGHT });
 
     const screenshotBuffer = await page.screenshot({
       clip: {
