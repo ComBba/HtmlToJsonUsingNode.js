@@ -34,14 +34,18 @@ function isValidFormatForCategory(response) {
   return regex.test(response);
 }
 
-async function generateValidCompletion(inputText, systemContent, userContent) {
-  const response = await createCompletion(inputText, systemContent, userContent);
-
+async function generateValidCompletion(inputText, systemContent, userContent, temperature = 0.2) {
+  if (temperature > 0.8) {
+    temperature = 0.1;
+  }
+  const response = await createCompletion(inputText, systemContent, userContent, temperature + 0.1);
+  console.log("[generateValidCompletion] temperature : ", temperature);
   if (isValidFormatForCategory(response.messageContent)) {
     return response;
   } else {
     console.log("[CategoryValidation][XXXXX] :", response.messageContent, "\n", "[inputText]", inputText);
-    return await generateValidCompletion(inputText, systemContent, userContent);
+    await sleep(2000); // 2초 딜레이를 추가합니다.
+    return await generateValidCompletion(inputText, systemContent, userContent, temper, temperature + 0.1);
   }
 }
 
