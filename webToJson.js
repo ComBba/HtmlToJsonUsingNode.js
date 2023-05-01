@@ -35,9 +35,9 @@ async function fetchAndSummarize(url) {
   }
 }
 
-function isValidFormatForCategory(messageContent) {
-  const parts = messageContent.split(', ');
-  return parts.length === 3 && parts.every((part) => part.match(/^\d:\s\w+$/));
+function isValidFormatForCategory(response) {
+  const regex = /^\d:\s\w+,\s\d:\s\w+,\s\d:\s\w+$/;
+  return regex.test(response);
 }
 
 async function generateValidCompletion(inputText, systemContent, userContent) {
