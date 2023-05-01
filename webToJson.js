@@ -36,12 +36,12 @@ async function fetchAndSummarize(url) {
 }
 
 function isValidFormatForCategory(response) {
-  const regex = /^\d:\s[\w\s]+,\s\d:\s[\w\s]+,\s\d:\s[\w\s]+$/;
+  const regex = /^\d:\s[\w\s]+,\s\d:\s[\w\s]+,\s\d:\s[\w\s]+(\.|$)/;
   return regex.test(response);
 }
 
 async function generateValidCompletion(inputText, systemContent, userContent) {
-  const response = await createCompletion(inputText, systemContent, userContent);
+  const response = await createCompletion(inputText, systemContent, userContent, 0);
 
   if (isValidFormatForCategory(response.messageContent)) {
     return response;
@@ -53,7 +53,7 @@ async function generateValidCompletion(inputText, systemContent, userContent) {
 
 async function categorizeDataTask(dataTask, useCaseText, summary) {
   const systemContent = "You are a helpful assistant that categorizes data.";
-  const userContent = "do not asum, rank the top 3 categories from the following list for the given data task and respond in the format '1: {category_name_1}, 2: {category_name_2}, 3: {category_name_3}': Speeches, Images, Data Analysis, Videos, NLP, Chatbots, Frameworks, Education, Health, Financial Services, Logistics, Gaming, Human Resources, CRM, Contents Creation, Automation, Cybersecurity, Social Media, Environment, Smart Cities: ";
+  const userContent = "do not asum, rank the top 3 categories from the following list for the given data task and respond in the format '1: {category_name_1}, 2: {category_name_2}, 3: {category_name_3}': Speeches, Images, Data Analysis, Videos, NLP, Chatbots, Frameworks, Education, Health, Financial Services, Logistics, Gaming, Human Resources, CRM, Contents Creation, Automation, Cybersecurity, Social Media, Environment, Smart Cities\n";
   const inputText = `${dataTask} ${useCaseText} ${summary}`;
   try {
     const response = await generateValidCompletion(inputText, systemContent, userContent);
