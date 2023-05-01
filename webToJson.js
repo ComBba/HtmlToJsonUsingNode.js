@@ -162,6 +162,11 @@ async function fetchSiteContent(url) {
     await page.goto(url, { waitUntil: 'networkidle2' });
     await page.waitForTimeout(5000); // 5초 대기
 
+    if (response.status() === 404 || response.status() === 500) {
+      console.error(`Error: ${response.status()} occurred while fetching the content from ${url}`);
+      return '';
+    }
+
     const screenshotBuffer = await page.screenshot({
       clip: {
         x: 0,
