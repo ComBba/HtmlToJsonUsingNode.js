@@ -20,13 +20,7 @@ async function init() {
   page = await browser.newPage();
 }
 async function fetchAndSummarize(url) {
-  let content;
-  if (url.includes("apps.apple.com")) {
-    content = await getWebsiteContent(url);
-  } else {
-    content = await fetchSiteContent(url);
-  }
-
+  const content = await fetchSiteContent(url);
   if (content.contents?.length > 0) {
     const summaryResult = await createUrlToSummarizeCompletion(content.contents);
     return { summary: summaryResult.summary, screenShot: content.imageData };
@@ -73,6 +67,7 @@ async function extractData($) {
     const el = $(element);
     const dataId = el.attr('data-id');
     const dataName = el.attr('data-name');
+    const dataUrl = el.attr('data-url');
 
     // Check if dataId already exists in MongoDB
     const exists = await checkIfExistsInMongoDB(dataId);
@@ -84,24 +79,23 @@ async function extractData($) {
 
     await sleep(randomInRange(1000, 2000)); // 1~2초 대기
 
-    const summary = await fetchAndSummarize(el.attr('data-url'));
-
-    const dataTask = el.attr('data-task');
-    const useCaseText = el.find('a.use_case').text().trim();
-    const categoryWithPrefix = await categorizeDataTask(dataTask, useCaseText, summary.summary);
-    console.log("[categoryWithPrefix]", categoryWithPrefix);
-    const Category1st = categoryWithPrefix.split(', ')[0].split(': ')[1];
-    const Category2nd = categoryWithPrefix.split(', ')[1].split(': ')[1];
-    const Category3rd = categoryWithPrefix.split(', ')[2].split(': ')[1];
-    console.log("[Category1st]", Category1st, "\n", "[Category2nd]", Category2nd, "\n", "[Category3rd]", Category3rd);
-    const category = "".concat(Category1st, ".", Category2nd, ".", Category3rd);
+    const summary = await fetchAndSummarize(dataUrl);
 
     if (summary.summary && summary.summary.length > 0) {
+      const dataTask = el.attr('data-task');
+      const useCaseText = el.find('a.use_case').text().trim();
+      const categoryWithPrefix = await categorizeDataTask(dataTask, useCaseText, summary.summary);
+      console.log("[categoryWithPrefix]", categoryWithPrefix);
+      const Category1st = categoryWithPrefix.split(', ')[0].split(': ')[1];
+      const Category2nd = categoryWithPrefix.split(', ')[1].split(': ')[1];
+      const Category3rd = categoryWithPrefix.split(', ')[2].split(': ')[1];
+      console.log("[Category1st]", Category1st, "\n", "[Category2nd]", Category2nd, "\n", "[Category3rd]", Category3rd);
+      const category = "".concat(Category1st, ".", Category2nd, ".", Category3rd);
       const data = {
         dataId: dataId,
         dataName: dataName,
         dataTask: dataTask,
-        dataUrl: el.attr('data-url'),
+        dataUrl: dataUrl,
         dataTaskSlug: el.attr('data-task_slug'),
         aiLinkHref: el.find('a.ai_link.new_tab.c_event').attr('href'),
         useCaseText: useCaseText,
@@ -176,7 +170,7 @@ async function fetchSiteContent(url) {
       .jpeg({ quality: 70 }) // JPEG 품질 설정, 0-100 (낮은 값일수록 더 많이 압축됩니다)
       .toBuffer();
 
-    const content = await page.evaluate(() => {
+    const content = await page.evaluate((url) => {
       const paragraphs = Array.from(document.querySelectorAll('p'));
       const title = document.querySelector('title')?.innerText;
       const description = document.querySelector('meta[name="description"]')?.content;
@@ -184,18 +178,21 @@ async function fetchSiteContent(url) {
 
       const ogTitle = document.querySelector('meta[property="og:title"]')?.content;
       const ogDescription = document.querySelector('meta[property="og:description"]')?.content;
-      const ogImage = document.querySelector('meta[property="og:image"]')?.content;
 
       const twitterTitle = document.querySelector('meta[name="twitter:title"]')?.content;
       const twitterDescription = document.querySelector('meta[name="twitter:description"]')?.content;
-      const twitterImage = document.querySelector('meta[name="twitter:image"]')?.content;
-      const pMap = paragraphs.map(p => p.innerText).join('\n');
-      const contents = "".concat(title, description, keywords, ogTitle, ogDescription, ogImage, twitterTitle, twitterDescription, twitterImage, pMap,)
-
+      let body;
+      if (url.includes("apps.apple.com")) {
+        //const specificContents = $("body > div.ember-view > main > div.animation-wrapper.is-visible > section:nth-child(4) > div")?.text().replace(/\s\s+/g, ' ').trim();
+        body = document.querySelector("body > div.ember-view > main > div.animation-wrapper.is-visible > section:nth-child(4) > div > div > div")?.content;
+      } else {
+        body = paragraphs.map(p => p.innerText).join('\n');
+      }
+      const contents = "".concat(title, description, keywords, ogTitle, ogDescription, twitterTitle, twitterDescription, body)
       console.log('title:', title);
       console.log('content:', contents);
       return contents;
-    });
+    }, url);
 
     return {
       contents: content,
