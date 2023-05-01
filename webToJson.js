@@ -36,7 +36,7 @@ async function fetchAndSummarize(url) {
 }
 
 function isValidFormatForCategory(response) {
-  const regex = /^\d:\s\w+,\s\d:\s\w+,\s\d:\s\w+$/;
+  const regex = /^\d:\s[\w\s]+,\s\d:\s[\w\s]+,\s\d:\s[\w\s]+$/;
   return regex.test(response);
 }
 
