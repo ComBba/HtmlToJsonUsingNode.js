@@ -9,6 +9,9 @@ const { getWebsiteContent, createUrlToSummarizeCompletion } = require('./lib/url
 const { checkIfExistsInMongoDB, insertIntoMongoDB } = require('./lib/connectMongo.js');
 const { createCompletion } = require('./lib/openaiHelper.js');
 
+const VIEWPORT_WIDTH = 915;
+const VIEWPORT_HEIGHT = 750;
+
 let browser, page;
 
 async function init() {
@@ -32,7 +35,7 @@ async function fetchAndSummarize(url) {
     content = await fetchSiteContent(url);
   }
 
-  if (content.contents && content.contents.length > 0) {
+  if (content.contents?.length > 0) {
     const summaryResult = await createUrlToSummarizeCompletion(content.contents);
     return { summary: summaryResult.summary, screenShot: content.imageData };
   } else {
@@ -66,13 +69,29 @@ function shuffle(array) {
 
   return array;
 }
+
+function isValidFormatForCategory(messageContent) {
+  const parts = messageContent.split(', ');
+  return parts.length === 3 && parts.every((part) => part.match(/^\d:\s\w+$/));
+}
+
+async function generateValidCompletion(inputText, systemContent, userContent) {
+  const response = await createCompletion(inputText, systemContent, userContent);
+
+  if (isValidFormatForCategory(response.messageContent)) {
+    return response;
+  } else {
+    console.log("[CategoryValidation] [XX] :", response.messageContent);
+    return await generateValidCompletion(inputText, systemContent, userContent);
+  }
+}
+
 async function categorizeDataTask(dataTask, useCaseText, summary) {
   const systemContent = "You are a helpful assistant that categorizes data.";
   const userContent = "do not asum, rank the top 3 categories from the following list for the given data task and respond in the format '1: {category_name_1}, 2: {category_name_2}, 3: {category_name_3}': Speeches, Images, Data Analysis, Videos, NLP, Chatbots, Frameworks, Education, Health, Financial Services, Logistics, Gaming, Human Resources, CRM, Contents Creation, Automation, Cybersecurity, Social Media, Environment, Smart Cities: ";
   const inputText = `${dataTask} ${useCaseText} ${summary}`;
-
   try {
-    const response = await createCompletion(inputText, systemContent, userContent);
+    const response = await generateValidCompletion(inputText, systemContent, userContent);
     const category = removeDots(response.messageContent);
     return category;
   } catch (error) {
@@ -111,7 +130,7 @@ async function extractData($) {
     const Category3rd = categoryWithPrefix.split(', ')[2].split(': ')[1];
     console.log("[Category1st]", Category1st, "\n", "[Category2nd]", Category2nd, "\n", "[Category3rd]", Category3rd);
     const category = "".concat(Category1st, ".", Category2nd, ".", Category3rd);
-    
+
     if (summary.summary && summary.summary.length > 0) {
       const data = {
         dataId: dataId,
@@ -185,7 +204,7 @@ async function fetchSiteContent(url) {
     await page.waitForTimeout(5000); // 5초 대기
 
     // 페이지 뷰포트 크기 설정
-    await page.setViewport({ width: 915, height: 750 });
+    await page.setViewport({ width: VIEWPORT_WIDTH, height: VIEWPORT_HEIGHT });
 
     const screenshotBuffer = await page.screenshot({
       clip: {
