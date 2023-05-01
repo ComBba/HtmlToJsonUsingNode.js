@@ -1,10 +1,10 @@
-/* Add this to your app.css */
+/* styles.css */
 header {
   display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
-  margin: 10px 0; /* Add margin-top and margin-bottom */
+  margin: 10px 0;
 }
 
 #search-input {
@@ -85,7 +85,8 @@ body {
   opacity: 1;
 }
 
-.gallery-item .dataName, .gallery-item .dataTask {
+.gallery-item .dataName,
+.gallery-item .dataTask {
   position: absolute;
   color: white;
   font-size: 12px;
@@ -106,7 +107,6 @@ body {
 }
 
 #pagination {
-  display: flex;
   margin: 20px;
 }
 
