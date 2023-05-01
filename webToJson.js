@@ -45,7 +45,7 @@ async function generateValidCompletion(inputText, systemContent, userContent, te
   } else {
     console.log("[CategoryValidation][XXXXX] :", response.messageContent, "\n", "[inputText]", inputText);
     await sleep(2000); // 2초 딜레이를 추가합니다.
-    return await generateValidCompletion(inputText, systemContent, userContent, temper, temperature + 0.1);
+    return await generateValidCompletion(inputText, systemContent, userContent, temperature + 0.1);
   }
 }
 
