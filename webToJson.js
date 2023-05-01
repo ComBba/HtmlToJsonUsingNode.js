@@ -12,7 +12,7 @@ const { createCompletion } = require('./lib/openaiHelper.js');
 let browser, page;
 
 async function init() {
-  browser = await puppeteer.launch({ headless: 'new' });
+  browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
   page = await browser.newPage();
 }
 
@@ -163,11 +163,10 @@ async function fetchAndConvertHtmlToJson(url, outputFile) {
 async function fetchSiteContent(url) {
   try {
     console.log("\n[fetchSiteContent] url:", url);
-    await page.goto(url, { waitUntil: 'networkidle2' });
-    await page.waitForTimeout(5000); // 5초 대기
-
     // 페이지 뷰포트 크기 설정
     await page.setViewport({ width: 915, height: 750 });
+    await page.goto(url, { waitUntil: 'networkidle2' });
+    await page.waitForTimeout(5000); // 5초 대기
 
     const screenshotBuffer = await page.screenshot({
       clip: {
