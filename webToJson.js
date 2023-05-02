@@ -9,6 +9,7 @@ const { getWebsiteContent, createUrlToSummarizeCompletion } = require('./lib/url
 const { checkIfExistsInMongoDB, insertIntoMongoDB } = require('./lib/connectMongo.js');
 const { createCompletion } = require('./lib/openaiHelper.js');
 const { sleep, randomInRange, msToTime, convertToTimestamp, removeDots, shuffle } = require('./tools/utils');
+const { fetchFaviconAsBase64 } = require('./lib/getFavicon.js');
 
 const VIEWPORT_WIDTH = 915;
 const VIEWPORT_HEIGHT = 750;
@@ -184,26 +185,7 @@ async function fetchSiteContent(url) {
       .toBuffer();
     console.log('[compressedBuffer]', screenshotBuffer.length, '=>', compressedBuffer.length);
 
-    const faviconUrl = await page.$$eval('link[rel="icon"]', links => {
-      const href = links && links[0] && links[0].href;
-      console.log('[faviconUrl]', href);
-      return href && (href.startsWith('http') ? href : `${location.origin}${href}`);
-    });
-
-    let faviconData = null;
-    if (faviconUrl) {
-      // 수정된 부분: favicon 이미지를 base64로 변환
-      const response = await axios.get(faviconUrl, {
-        responseType: 'arraybuffer',
-      });
-
-      if (response.status === 200) {
-        const buffer = Buffer.from(response.data, 'binary');
-        faviconData = buffer.toString('base64');
-      } else {
-        console.error(`Error: ${response.status} occurred while fetching the favicon from ${faviconUrl}`);
-      }
-    }
+    const faviconData = await fetchFaviconAsBase64(url); // Use fetchFaviconAsBase64 function here
 
     const content = await page.evaluate((url) => {
       const paragraphs = Array.from(document.querySelectorAll('p'));
