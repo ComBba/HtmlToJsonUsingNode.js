@@ -185,8 +185,12 @@ async function fetchSiteContent(url) {
       .toBuffer();
     console.log('[compressedBuffer]', screenshotBuffer.length, '=>', compressedBuffer.length);
 
-    const faviconData = await fetchFaviconAsBase64(url); // Use fetchFaviconAsBase64 function here
-
+    const faviconData = await fetchFaviconAsBase64(url);// Use fetchFaviconAsBase64 function here
+    if (faviconData) {
+      console.log(`[\x1b[32mOK\x1b[0m][DOCU] Updated favicon for ${url}`);
+    } else {
+      console.log(`[Fail][DOCU] Could not fetch favicon for ${url}`);
+    }
     const content = await page.evaluate((url) => {
       const paragraphs = Array.from(document.querySelectorAll('p'));
       const title = document.querySelector('title')?.innerText;
