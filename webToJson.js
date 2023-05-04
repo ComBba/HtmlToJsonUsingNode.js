@@ -11,6 +11,9 @@ const { createCompletion } = require('./lib/openaiHelper.js');
 const { sleep, randomInRange, msToTime, convertToTimestamp, removeDots, shuffle } = require('./tools/utils');
 const { fetchFaviconAsBase64 } = require('./lib/getFavicon.js');
 
+const { removeStopwords, eng, kor } = require('stopword');
+const { get } = require('http');
+
 const VIEWPORT_WIDTH = 915;
 const VIEWPORT_HEIGHT = 750;
 
@@ -69,6 +72,34 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
   }
 }
 
+function get_categorysl(Category1st, Category2nd, Category3rd) {
+  return [
+    Category1st.toLowerCase(),
+    Category2nd.toLowerCase(),
+    Category3rd.toLowerCase()
+  ];
+}
+function get_search_keywords(dataName, dataTask, dataTaskSlug, summary, useCaseText, categorysl) {
+  return [
+    dataName.toLowerCase().trim(),
+    dataTask.toLowerCase().trim(),
+    dataTaskSlug.toLowerCase().trim(),
+    summary.toLowerCase().trim(),
+    useCaseText.toLowerCase().trim(),
+    categorysl.join(' ').trim()
+  ];
+}
+// 중복단어들을 제거한, 불용어들을 제외한 검색어 리턴, 영문,한글 지원, text index search에 사용예정
+function get_search_keywords_filtered(search_keywords_filtered) {
+  search_keywords_filtered = removeStopwords(search_keywords_filtered.split(' '), eng).join(' ');
+  search_keywords_filtered = removeStopwords(search_keywords_filtered.split(' '), kor).join(' ');
+  search_keywords_filtered = search_keywords_filtered.replace(/[.,;:]/g, ''); // Remove special characters
+  search_keywords_filtered = search_keywords_filtered.replace(/[\n\r]/g, ' '); // Remove newline and carriage return characters
+  search_keywords_filtered = search_keywords_filtered.replace(/<[^>]*>/g, ''); // Remove HTML tags
+  search_keywords_filtered = [...new Set(search_keywords_filtered.split(' '))].join(' ');// Remove duplicates using Set
+  return search_keywords_filtered;
+}
+
 async function extractData($) {
   const result = [];
   const elements = $('div.tasks > li').toArray();
@@ -101,6 +132,10 @@ async function extractData($) {
       const Category3rd = categoryWithPrefix.split(', ')[2].split(': ')[1];
       console.log("[Category1st]", Category1st, "\n", "[Category2nd]", Category2nd, "\n", "[Category3rd]", Category3rd);
       const category = "".concat(Category1st, ".", Category2nd, ".", Category3rd);
+      const categorysl = get_categorysl(Category1st, Category2nd, Category3rd);
+      const search_keywords = get_search_keywords(dataName, dataTask, el.attr('data-task_slug'), summary.summary, useCaseText, categorysl);
+      const search_keywordsl = search_keywords.join(' ');
+      const search_keywords_filtered = get_search_keywords_filtered(search_keywordsl);
       const data = {
         dataId: dataId,
         dataName: dataName,
@@ -119,6 +154,14 @@ async function extractData($) {
         Category2nd: Category2nd,
         Category3rd: Category3rd,
         favicon: summary.favicon,
+        categorys: [
+          Category1st,
+          Category2nd,
+          Category3rd
+        ],
+        categorysl: categorysl,
+        search_keywordsl: search_keywordsl,
+        search_keywords_filtered: search_keywords_filtered,
       };
       if (result.length < 20) {
         result.push(data);
