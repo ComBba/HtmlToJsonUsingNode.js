@@ -1,20 +1,66 @@
 //twitterAiLinkCollector.js
-const openai = require('../lib/openaiHelper'); // 수정된 부분
 const axios = require('axios');
+const openai = require('../lib/openaiHelper');
 const { MongoClient } = require('mongodb');
 const path = require('path');
 const dotenv = require('dotenv');
+const qs = require('qs');
+const btoa = require('btoa');
 
 // Set path for environment variables
 const envPath = path.join(__dirname, '..', '.env.local');
 dotenv.config({ path: envPath });
 
-//const twitterApiBaseUrl = 'https://api.twitter.com/1.1';
-const twitterApiBaseUrl = 'https://api.twitter.com/2';
+// Get BEARER_TOKEN from environment variable
+const BEARER_TOKEN = process.env.TWITTER_BEARER_TOKEN;
 
 // Set up MongoDB client
 const uri = process.env.MONGODB_CONNECTION_URI;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
+async function getTwitterAccessToken() {
+    const credentials = btoa(
+        `${process.env.TWITTER_CONSUMER_KEY}:${process.env.TWITTER_CONSUMER_SECRET}`
+    );
+
+    try {
+        const response = await axios.post(
+            'https://api.twitter.com/oauth2/token',
+            qs.stringify({ grant_type: 'client_credentials' }),
+            {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                    Authorization: `Basic ${credentials}`,
+                },
+            }
+        );
+
+        return response.data.access_token;
+    } catch (error) {
+        console.error('Error getting Twitter access token:', error);
+        return null;
+    }
+}
+
+async function searchTweets(query) {
+    try {
+        const response = await axios.get(
+            `https://api.twitter.com/1.1/search/tweets.json?q=${encodeURIComponent(
+                query
+            )}&count=100`,
+            {
+                headers: {
+                    Authorization: `Bearer ${BEARER_TOKEN}`,
+                },
+            }
+        );
+
+        return response.data.statuses;
+    } catch (error) {
+        console.error('Error searching tweets:', error.response.data);
+        return [];
+    }
+}
 
 // Function to extract URL from tweet
 function extractUrlFromTweet(tweet) {
@@ -94,25 +140,18 @@ async function processTweets(tweets) {
     await client.close();
 }
 
-// Function to search for and process tweets
 async function searchAndProcessTweets() {
     try {
-        const response = await axios.get(`${twitterApiBaseUrl}/tweets/search/recent`, {
-            params: {
-                query: 'site launching',
-                max_results: 100,
-                expansions: 'attachments.media_keys',
-                'media.fields': 'url',
-            },
-            headers: {
-                'Authorization': `Bearer ${process.env.TWITTER_BEARER_TOKEN}`,
-            },
-        });
+        const accessToken = await getTwitterAccessToken();
+        if (!accessToken) {
+            console.error('Unable to get Twitter access token');
+            return;
+        }
 
-        const tweets = response.data.data;
+        const tweets = await searchTweets(accessToken, 'site launching');
         await processTweets(tweets);
     } catch (error) {
-        console.error("[Error] fetching tweets: ", error.response.data);
+        console.error('[Error] fetching tweets:', error);
     }
 }
 

@@ -12,6 +12,7 @@
     "@fastify/compress": "^6.2.1",
     "@fastify/static": "^6.10.1",
     "axios": "^1.4.0",
+    "btoa": "^1.2.1",
     "cheerio": "^1.0.0-rc.12",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
@@ -21,6 +22,7 @@
     "natural": "^6.2.0",
     "openai": "^3.2.1",
     "puppeteer": "^19.11.0",
+    "qs": "^6.11.1",
     "sharp": "^0.32.1",
     "twitter-api-client": "^1.6.1"
   }
