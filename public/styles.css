@@ -1,4 +1,12 @@
 /* styles.css */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #282c34;
+  color: #ffffff;
+}
+
 header {
   display: flex;
   justify-content: center;
@@ -22,12 +30,17 @@ header {
   border-color: #007bff;
 }
 
-body {
-  font-family: Arial, sans-serif;
-  margin: 0;
-  padding: 0;
-  background-color: #282c34;
-  color: #ffffff;
+.categories-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-evenly;
+  margin: 1em 0;
+}
+
+.categories-container span {
+  flex-basis: 19%;
+  margin: 0.5em 0;
+  text-align: center;
 }
 
 .gallery-container {

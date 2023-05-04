@@ -170,3 +170,20 @@ function updateDataInfo(totalItems, page) {
   const dataInfo = document.getElementById("data-info");
   dataInfo.innerText = `Displaying items ${start} - ${end} of ${totalItems}`;
 }
+
+async function fetchCategories() {
+  const response = await fetch('/categories');
+  const { categories } = await response.json();
+  return categories;
+}
+
+function renderCategories(categories) {
+  const categoriesContainer = document.getElementById('categories');
+  categoriesContainer.innerHTML = '';
+
+  categories.forEach(({ category, count }) => {
+    const categoryElement = document.createElement('span');
+    categoryElement.textContent = `${category} (${count})`;
+    categoriesContainer.appendChild(categoryElement);
+  });
+}
