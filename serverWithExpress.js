@@ -109,6 +109,42 @@ app.get('/image/:dataId', async (req, res) => {
   }
 });
 
+// Utility function to get unique categories and their count
+async function getCategoriesAndCounts(collection) {
+  const pipeline = [
+    {
+      $project: {
+        categories: ["$Category1st", "$Category2nd", "$Category3rd"],
+      },
+    },
+    { $unwind: "$categories" },
+    { $group: { _id: "$categories", count: { $sum: 1 } } },
+    { $project: { category: "$_id", count: 1, _id: 0 } },
+    { $sort: { category: 1 } },
+  ];
+
+  const categories = await collection.aggregate(pipeline).toArray();
+  return categories;
+}
+
+app.get("/categories", async (req, res) => {
+  console.log("GET /categories request received");
+
+  try {
+    const client = await getClient();
+    const collection = client.db(dbName).collection(collectionName);
+
+    console.log("Fetching categories from MongoDB");
+    const categories = await getCategoriesAndCounts(collection);
+    console.log("Categories fetched successfully");
+
+    res.json({ categories });
+  } catch (err) {
+    res.status(500).send("Error fetching categories from MongoDB");
+    console.error("Error fetching categories from MongoDB:", err);
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
