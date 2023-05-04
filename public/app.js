@@ -2,10 +2,16 @@
 const itemsPerPage = 9;
 let currentPage = 1;
 
-fetchData(currentPage);
+(async function () {
+  fetchData(currentPage);
 
-const searchInput = document.getElementById("search-input");
-searchInput.addEventListener("input", onSearchInput);
+  // Fetch and render categories
+  const categories = await fetchCategories();
+  renderCategories(categories);
+
+  const searchInput = document.getElementById("search-input");
+  searchInput.addEventListener("input", onSearchInput);
+})();
 
 function onSearchInput(event) {
   const searchQuery = event.target.value;
