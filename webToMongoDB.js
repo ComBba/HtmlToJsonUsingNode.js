@@ -8,7 +8,7 @@ const sharp = require('sharp');
 const { getWebsiteContent, createUrlToSummarizeCompletion } = require('./lib/urlToSummarizeWithOpenAI.js');
 const { checkIfExistsInMongoDB, insertIntoMongoDB } = require('./lib/connectMongo.js');
 const { createCompletion } = require('./lib/openaiHelper.js');
-const { sleep, randomInRange, msToTime, convertToTimestamp, removeDots, shuffle } = require('./tools/utils');
+const { sleep, randomInRange, msToTime, convertToTimestamp, removeDots, shuffle } = require('./tools/utils.js');
 const { fetchFaviconAsBase64 } = require('./lib/getFavicon.js');
 
 const { removeStopwords, eng, kor } = require('stopword');
