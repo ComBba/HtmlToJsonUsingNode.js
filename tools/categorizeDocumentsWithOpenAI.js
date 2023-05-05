@@ -17,7 +17,7 @@ function isValidFormatForCategory(response) {
 
 async function generateValidCompletion(inputText, systemContent, userContent, temperature = 0.5) {
     if (temperature > 1.5) {
-        temperature = 0.0;
+        temperature = 0.1;
     }
     const response = await createCompletion(inputText, systemContent, userContent, temperature + 0.1);
     console.log("[generateValidCompletion] temperature : ", temperature);
