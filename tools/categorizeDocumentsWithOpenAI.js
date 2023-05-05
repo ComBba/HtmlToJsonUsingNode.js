@@ -105,6 +105,7 @@ async function asyncForEach(array, callback) {
 
             if (isValidCategory(Category1st) && isValidCategory(Category2nd) && isValidCategory(Category3rd)) {
                 console.log(`[\x1b[33m${index + 1}\x1b[0m/${array.length}][\x1b[32mSKIPPED\x1b[0m][${dataId}] ${dataName} ${dataTask}\n[useCaseText] ${useCaseText}\n\n`);
+                await sleep(1000); // 1초 딜레이를 추가합니다.
             } else {
                 const category = await categorizeDataTask(dataTask, useCaseText, summary);
                 const [NewCategory1st, NewCategory2nd, NewCategory3rd] = category.split('.');
@@ -115,6 +116,7 @@ async function asyncForEach(array, callback) {
                 } else {
                     console.log(`[${index + 1}/${array.length}][Fail]${dataId}\t${dataName}\t${dataTask}\n\t${useCaseText}`);
                 }
+                await sleep(2000); // 2초 딜레이를 추가합니다.
             }
         });
     } catch (error) {
