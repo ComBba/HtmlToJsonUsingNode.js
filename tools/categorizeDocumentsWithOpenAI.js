@@ -70,6 +70,7 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
             console.log("[Attempt][Failed] count:", attemptCount);
             break;
         }
+        sleep(3000);
     }// categories 배열을 쉼표로 구분하여 리턴
     return categories.join('.');
 }
@@ -104,8 +105,8 @@ async function asyncForEach(array, callback) {
             const { _id, dataId, dataName, dataTask, useCaseText, summary, Category1st, Category2nd, Category3rd } = doc;
 
             if (isValidCategory(Category1st) && isValidCategory(Category2nd) && isValidCategory(Category3rd)) {
-                console.log(`[\x1b[33m${index + 1}\x1b[0m/${array.length}][\x1b[32mSKIPPED\x1b[0m][${dataId}] ${dataName} ${dataTask}\n[useCaseText] ${useCaseText}\n\n`);
-                await sleep(1000); // 1초 딜레이를 추가합니다.
+                console.log(`[\x1b[33m${index + 1}\x1b[0m/${array.length}][\x1b[32mSKIPPED\x1b[0m][${dataId}] ${dataName} ${dataTask}\n[useCaseText] ${useCaseText}\n[Categories] ${Category1st}, ${Category2nd}, ${Category3rd}\n\n`);
+                //await sleep(1000); // 1초 딜레이를 추가합니다.
             } else {
                 const category = await categorizeDataTask(dataTask, useCaseText, summary);
                 const [NewCategory1st, NewCategory2nd, NewCategory3rd] = category.split('.');
@@ -116,7 +117,7 @@ async function asyncForEach(array, callback) {
                 } else {
                     console.log(`[${index + 1}/${array.length}][Fail]${dataId}\t${dataName}\t${dataTask}\n\t${useCaseText}`);
                 }
-                await sleep(2000); // 2초 딜레이를 추가합니다.
+                await sleep(10000); // 10초 딜레이를 추가합니다.
             }
         });
     } catch (error) {
