@@ -97,6 +97,7 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
       console.log("[Attempt][Failed] count:", attemptCount);
       break;
     }
+    sleep(3000);
   }// categories 배열을 쉼표로 구분하여 리턴
   return categories.join('.');
 }
