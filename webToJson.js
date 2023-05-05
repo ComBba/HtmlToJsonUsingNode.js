@@ -44,7 +44,7 @@ function isValidFormatForCategory(response) {
 
 async function generateValidCompletion(inputText, systemContent, userContent, temperature = 0.5) {
   if (temperature > 1.5) {
-    temperature = 0.1;
+    temperature = 0.2;
   }
   const response = await createCompletion(inputText, systemContent, userContent, temperature + 0.1);
   console.log("[generateValidCompletion] temperature : ", temperature);
@@ -97,8 +97,8 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
       console.log("[Attempt][Failed] count:", attemptCount);
       break;
     }
-  }
-  return response.messageContent;
+  }// categories 배열을 쉼표로 구분하여 리턴
+  return categories.join('.');
 }
 
 function get_categorysl(Category1st, Category2nd, Category3rd) {
@@ -154,13 +154,9 @@ async function extractData($) {
     if (summary.summary && summary.summary.length > 0) {
       const dataTask = el.attr('data-task');
       const useCaseText = el.find('a.use_case').text().trim();
-      const categoryWithPrefix = await categorizeDataTask(dataTask, useCaseText, summary.summary);
-      console.log("[categoryWithPrefix]", categoryWithPrefix);
-      const Category1st = categoryWithPrefix.split(', ')[0].split(': ')[1];
-      const Category2nd = categoryWithPrefix.split(', ')[1].split(': ')[1];
-      const Category3rd = categoryWithPrefix.split(', ')[2].split(': ')[1];
-      console.log("[Category1st]", Category1st, "\n", "[Category2nd]", Category2nd, "\n", "[Category3rd]", Category3rd);
-      const category = "".concat(Category1st, ".", Category2nd, ".", Category3rd);
+      const category = await categorizeDataTask(dataTask, useCaseText, summary.summary);
+      const [Category1st, Category2nd, Category3rd] = category.split('.');
+      console.log("[category]", category, "\n", "[Category1st]", Category1st, "\n", "[Category2nd]", Category2nd, "\n", "[Category3rd]", Category3rd);
       const categorysl = get_categorysl(Category1st, Category2nd, Category3rd);
       const search_keywords = get_search_keywords(dataName, dataTask, el.attr('data-task_slug'), summary.summary, useCaseText, categorysl);
       const search_keywordsl = search_keywords.join(' ');

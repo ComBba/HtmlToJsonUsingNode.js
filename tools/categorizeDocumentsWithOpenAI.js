@@ -17,7 +17,7 @@ function isValidFormatForCategory(response) {
 
 async function generateValidCompletion(inputText, systemContent, userContent, temperature = 0.5) {
     if (temperature > 1.5) {
-        temperature = 0.1;
+        temperature = 0.2;
     }
     const response = await createCompletion(inputText, systemContent, userContent, temperature + 0.1);
     console.log("[generateValidCompletion] temperature : ", temperature);
@@ -70,8 +70,8 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
             console.log("[Attempt][Failed] count:", attemptCount);
             break;
         }
-    }
-    return response.messageContent;
+    }// categories 배열을 쉼표로 구분하여 리턴
+    return categories.join('.');
 }
 
 
@@ -94,28 +94,27 @@ async function asyncForEach(array, callback) {
         const db = client.db(process.env.MONGODB_DATABASE_NAME);
         const collection = db.collection(process.env.MONGODB_COLLECTION_NAME);
 
-        //const documents = await collection.find({ category: { $exists: false } }).toArray();
-        //const documents = await collection.find({}).toArray();
         const documents = await collection.find({}, {
             projection: {
-                _id: 1, dataId: 1, dataName: 1, dataTask: 1, useCaseText: 1, summary: 1
+                _id: 1, dataId: 1, dataName: 1, dataTask: 1, useCaseText: 1, summary: 1, Category1st: 1, Category2nd: 1, Category3rd: 1
             }
         }).toArray();
         console.log(`Found ${documents.length} documents to categorize.`);
         await asyncForEach(documents, async (doc, index, array) => {
-            const { _id, dataId, dataName, dataTask, useCaseText, summary } = doc;
+            const { _id, dataId, dataName, dataTask, useCaseText, summary, Category1st, Category2nd, Category3rd } = doc;
 
-            const categoryWithPrefix = await categorizeDataTask(dataTask, useCaseText, summary);
-            const Category1st = categoryWithPrefix.split(', ')[0].split(': ')[1];
-            const Category2nd = categoryWithPrefix.split(', ')[1].split(': ')[1];
-            const Category3rd = categoryWithPrefix.split(', ')[2].split(': ')[1];
-            const category = "".concat(Category1st, ".", Category2nd, ".", Category3rd);
-            console.log("[category]", category, "[categoryWithPrefix]", categoryWithPrefix)
-            if (category) {
-                await collection.updateOne({ _id }, { $set: { category, Category1st, Category2nd, Category3rd } });
-                console.log(`[${index + 1}/${array.length}][OK][${category}]${dataId}\t${dataName}\t${dataTask}\n\t${useCaseText}`);
+            if (isValidCategory(Category1st) && isValidCategory(Category2nd) && isValidCategory(Category3rd)) {
+                console.log(`[\x1b[33m${index + 1}\x1b[0m/${array.length}][\x1b[32mSKIPPED\x1b[0m][${dataId}] ${dataName} ${dataTask}\n[useCaseText] ${useCaseText}\n\n`);
             } else {
-                console.log(`[${index + 1}/${array.length}][Fail]${dataId}\t${dataName}\t${dataTask}\n\t${useCaseText}`);
+                const category = await categorizeDataTask(dataTask, useCaseText, summary);
+                const [NewCategory1st, NewCategory2nd, NewCategory3rd] = category.split('.');
+                console.log("[category]", category);
+                if (category) {
+                    await collection.updateOne({ _id }, { $set: { category, Category1st: NewCategory1st, Category2nd: NewCategory2nd, Category3rd: NewCategory3rd } });
+                    console.log(`[\x1b[33m${index + 1}\x1b[0m/${array.length}][\x1b[32mOK\x1b[0m][${dataId}] ${dataName} ${dataTask}\n[category] ${category}\n[useCaseText] ${useCaseText}\n\n`);
+                } else {
+                    console.log(`[${index + 1}/${array.length}][Fail]${dataId}\t${dataName}\t${dataTask}\n\t${useCaseText}`);
+                }
             }
         });
     } catch (error) {
