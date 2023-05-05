@@ -27,6 +27,7 @@ async function init() {
   // 페이지 뷰포트 크기 설정
   await page.setViewport({ width: VIEWPORT_WIDTH, height: VIEWPORT_HEIGHT });
 }
+
 async function fetchAndSummarize(url) {
   const content = await fetchSiteContent(url);
   if (content.contents?.length > 0) {
@@ -34,26 +35,6 @@ async function fetchAndSummarize(url) {
     return { summary: summaryResult.summary, screenShot: content.imageData, favicon: content.faviconData };
   } else {
     return { summary: "", screenShot: "" };
-  }
-}
-
-function isValidFormatForCategory(response) {
-  const regex = /^\d:\s[\w\s]+,\s\d:\s[\w\s]+,\s\d:\s[\w\s]+(\.|$)/;
-  return regex.test(response);
-}
-
-async function generateValidCompletion(inputText, systemContent, userContent, temperature = 0.5) {
-  if (temperature > 1.5) {
-    temperature = 0.2;
-  }
-  const response = await createCompletion(inputText, systemContent, userContent, temperature + 0.1);
-  console.log("[generateValidCompletion] temperature : ", temperature);
-  if (isValidFormatForCategory(response.messageContent)) {
-    return response;
-  } else {
-    console.log("[CategoryValidation][XXXXX] :", response.messageContent, "\n", "[inputText]", inputText);
-    await sleep(2000); // 2초 딜레이를 추가합니다.
-    return await generateValidCompletion(inputText, systemContent, userContent, temperature + 0.1);
   }
 }
 
@@ -73,13 +54,13 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
   let attemptCount = 0;
   let response;
   let categories;
-
+  let temperature = 0.5;
   while (!isValid) {
     attemptCount += 1;
     const userContent = `For a given data task, please strictly select and rank the top 3 categories from the list below, and provide your response in the format '1: {category_name_1}, 2: {category_name_2}, 3: {category_name_3}'. The list of valid categories is: Speeches, Images, Data Analysis, Videos, NLP, Chatbots, Frameworks, Education, Health, Financial Services, Logistics, Gaming, Human Resources, CRM, Contents Creation, Automation, Cybersecurity, Social Media, Environment, Smart Cities. Note: "AI" is not a valid category and should not be included in the response.\n`;
     const inputText = `Task:${dataTask}\nuseCaseText:${useCaseText}\nsummary:${summary}\nCategories to be excluded:${excludedCategories.join(', ')}`;
 
-    response = await generateValidCompletion(inputText, systemContent, userContent);
+    response = await createCompletion(inputText, systemContent, userContent, temperature);
     categories = response.messageContent.split(', ').map(c => {
       const category = c.split(': ')[1];
       return removeDots(category);
@@ -88,12 +69,13 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
 
     if (!isValid) {
       excludedCategories = excludedCategories.concat(categories.filter(c => !isValidCategory(c)));
+      temperature += 0.1;
       console.log('[Attempt][Invalid] count:', attemptCount, 'categories:', categories, 'Excluded categories:', excludedCategories);
     } else {
       console.log('[Attempt][Success] count:', attemptCount);
     }
 
-    if (++attemptCount > 10) {
+    if (++attemptCount > 20) {
       console.log("[Attempt][Failed] count:", attemptCount);
       break;
     }

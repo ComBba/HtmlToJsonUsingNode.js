@@ -10,26 +10,6 @@ dotenv.config({ path: envPath });
 const uri = process.env.MONGODB_CONNECTION_URI;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
-function isValidFormatForCategory(response) {
-    const regex = /^\d:\s[\w\s]+,\s\d:\s[\w\s]+,\s\d:\s[\w\s]+(\.|$)/;
-    return regex.test(response);
-}
-
-async function generateValidCompletion(inputText, systemContent, userContent, temperature = 0.5) {
-    if (temperature > 1.5) {
-        temperature = 0.2;
-    }
-    const response = await createCompletion(inputText, systemContent, userContent, temperature + 0.1);
-    console.log("[generateValidCompletion] temperature : ", temperature);
-    if (isValidFormatForCategory(response.messageContent)) {
-        return response;
-    } else {
-        console.log("[CategoryValidation][XXXXX] :", response.messageContent, "\n", "[inputText]", inputText);
-        await sleep(2000); // 2초 딜레이를 추가합니다.
-        return await generateValidCompletion(inputText, systemContent, userContent, temperature + 0.1);
-    }
-}
-
 function isValidCategory(category) {
     const validCategories = [
         'Speeches', 'Images', 'Data Analysis', 'Videos', 'NLP', 'Chatbots', 'Frameworks', 'Education', 'Health', 'Financial Services',
@@ -46,13 +26,13 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
     let attemptCount = 0;
     let response;
     let categories;
-
+    let temperature = 0.5;
     while (!isValid) {
         attemptCount += 1;
         const userContent = `For a given data task, please strictly select and rank the top 3 categories from the list below, and provide your response in the format '1: {category_name_1}, 2: {category_name_2}, 3: {category_name_3}'. The list of valid categories is: Speeches, Images, Data Analysis, Videos, NLP, Chatbots, Frameworks, Education, Health, Financial Services, Logistics, Gaming, Human Resources, CRM, Contents Creation, Automation, Cybersecurity, Social Media, Environment, Smart Cities. Note: "AI" is not a valid category and should not be included in the response.\n`;
         const inputText = `Task:${dataTask}\nuseCaseText:${useCaseText}\nsummary:${summary}\nCategories to be excluded:${excludedCategories.join(', ')}`;
 
-        response = await generateValidCompletion(inputText, systemContent, userContent);
+        response = await createCompletion(inputText, systemContent, userContent, temperature);
         categories = response.messageContent.split(', ').map(c => {
             const category = c.split(': ')[1];
             return removeDots(category);
@@ -61,12 +41,13 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
 
         if (!isValid) {
             excludedCategories = excludedCategories.concat(categories.filter(c => !isValidCategory(c)));
+            temperature += 0.1;
             console.log('[Attempt][Invalid] count:', attemptCount, 'categories:', categories, 'Excluded categories:', excludedCategories);
         } else {
             console.log('[Attempt][Success] count:', attemptCount);
         }
 
-        if (++attemptCount > 10) {
+        if (++attemptCount > 20) {
             console.log("[Attempt][Failed] count:", attemptCount);
             break;
         }
@@ -74,7 +55,6 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
     }// categories 배열을 쉼표로 구분하여 리턴
     return categories.join('.');
 }
-
 
 async function asyncForEach(array, callback) {
     for (let index = 0; index < array.length; index++) {
@@ -95,6 +75,7 @@ async function asyncForEach(array, callback) {
         const db = client.db(process.env.MONGODB_DATABASE_NAME);
         const collection = db.collection(process.env.MONGODB_COLLECTION_NAME);
 
+        //const documents = await collection.find({ category: { $exists: false } }).toArray();
         const documents = await collection.find({}, {
             projection: {
                 _id: 1, dataId: 1, dataName: 1, dataTask: 1, useCaseText: 1, summary: 1, Category1st: 1, Category2nd: 1, Category3rd: 1
@@ -110,14 +91,13 @@ async function asyncForEach(array, callback) {
             } else {
                 const category = await categorizeDataTask(dataTask, useCaseText, summary);
                 const [NewCategory1st, NewCategory2nd, NewCategory3rd] = category.split('.');
-                console.log("[category]", category);
                 if (category) {
                     await collection.updateOne({ _id }, { $set: { category, Category1st: NewCategory1st, Category2nd: NewCategory2nd, Category3rd: NewCategory3rd } });
                     console.log(`[\x1b[33m${index + 1}\x1b[0m/${array.length}][\x1b[32mOK\x1b[0m][${dataId}] ${dataName} ${dataTask}\n[category] ${category}\n[useCaseText] ${useCaseText}\n\n`);
                 } else {
-                    console.log(`[${index + 1}/${array.length}][Fail]${dataId}\t${dataName}\t${dataTask}\n\t${useCaseText}`);
+                    console.log(`[${index + 1}/${array.length}][Fail][${dataId}] ${dataName} ${dataTask}\n[useCaseText] ${useCaseText}\n[category] ${category}`);
                 }
-                await sleep(10000); // 10초 딜레이를 추가합니다.
+                await sleep(5000); // 10초 딜레이를 추가합니다.
             }
         });
     } catch (error) {
