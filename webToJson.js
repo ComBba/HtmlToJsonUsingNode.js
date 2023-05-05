@@ -65,12 +65,6 @@ function isValidCategory(category) {
   ];
   return validCategories.includes(category);
 }
-function excludedCategoriesString(excludedCategories) {
-  if (excludedCategories.length === 0) {
-    return '';
-  }
-  return `Exclude the following categories: ${excludedCategories.join(', ')}. `;
-}
 
 async function categorizeDataTask(dataTask, useCaseText, summary) {
   const systemContent = "You are a helpful assistant that categorizes data.";
@@ -82,8 +76,8 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
 
   while (!isValid) {
     attemptCount += 1;
-    const userContent = `For a given data task, please strictly select and rank the top 3 categories from the list below, and provide your response in the format '1: {category_name_1}, 2: {category_name_2}, 3: {category_name_3}'. The list of valid categories is: Speeches, Images, Data Analysis, Videos, NLP, Chatbots, Frameworks, Education, Health, Financial Services, Logistics, Gaming, Human Resources, CRM, Contents Creation, Automation, Cybersecurity, Social Media, Environment, Smart Cities.\n`;
-    const inputText = `Task:${dataTask}\nuseCaseText:${useCaseText}\nsummary:${summary}\nExcluded categories:${excludedCategories.join(', ')}`;
+    const userContent = `For a given data task, please strictly select and rank the top 3 categories from the list below, and provide your response in the format '1: {category_name_1}, 2: {category_name_2}, 3: {category_name_3}'. The list of valid categories is: Speeches, Images, Data Analysis, Videos, NLP, Chatbots, Frameworks, Education, Health, Financial Services, Logistics, Gaming, Human Resources, CRM, Contents Creation, Automation, Cybersecurity, Social Media, Environment, Smart Cities. Note: "AI" is not a valid category and should not be included in the response.\n`;
+    const inputText = `Task:${dataTask}\nuseCaseText:${useCaseText}\nsummary:${summary}\nCategories to be excluded:${excludedCategories.join(', ')}`;
 
     response = await generateValidCompletion(inputText, systemContent, userContent);
     categories = response.messageContent.split(', ').map(c => {
@@ -98,10 +92,13 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
     } else {
       console.log('[Attempt][Success] count:', attemptCount);
     }
-  }
 
-  const category = removeDots(response.messageContent);
-  return category;
+    if (++attemptCount > 10) {
+      console.log("[Attempt][Failed] count:", attemptCount);
+      break;
+    }
+  }
+  return response.messageContent;
 }
 
 function get_categorysl(Category1st, Category2nd, Category3rd) {
