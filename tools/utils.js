@@ -22,7 +22,10 @@ function convertToTimestamp(dateString) {
 }
 
 function removeDots(text) {
-    return text.replace(/\./g, '');
+    if (text === undefined || text === null) {
+        return '';
+    }
+    return text.trim().replace(/\./g, '');
 }
 
 function shuffle(array) {

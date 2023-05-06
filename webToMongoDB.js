@@ -37,7 +37,6 @@ async function fetchAndSummarize(url) {
     return { summary: "", screenShot: "" };
   }
 }
-
 function isValidCategory(category) {
   const validCategories = [
     'Speeches', 'Images', 'Data Analysis', 'Videos', 'NLP', 'Chatbots', 'Frameworks', 'Education', 'Health', 'Financial Services',
@@ -53,7 +52,7 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
   let isValid = false;
   let attemptCount = 0;
   let response;
-  let categories;
+  let categoryScores;
   let temperature = 0.4;
   while (!isValid) {
     if (temperature > 0.9 || temperature < 0.1) {
@@ -61,20 +60,31 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
       excludedCategories = [];
     }
     attemptCount += 1;
-    const userContent = `Absolutely select the top 3 from the list below in order of highest relevance to the provided data Task, useCaseText, summary, and respond in the format of '1: {category_name_1}, 2: {category_name_2}, 3: {category_name_3}'.\n
+    //const userContent = `Please select the top 3 from the list below in order of highest relevance to the provided data Task, useCaseText, summary, and respond in the format of '1: {category_name_1: suitability score}, 2: {category_name_2: suitability score}, 3: {category_name_3: suitability score}'. Assign a suitability score from 0 to 100 for each category, with 100 being the most suitable and 0 being the least suitable.\n
+    const userContent = `Absolutely select the top 3 from the list below in order of highest relevance to the provided data Task, useCaseText, summary, and Assign a suitability score from 0 to 100 for each category, with 100 being the most suitable and 0 being the least suitable. respond in the format of '1:{category_name_1:suitability score}, 2:{category_name_2:suitability score}, 3:{category_name_3:suitability score}'.\n
       A list of valid categories: 'Speeches', 'Images', 'Data Analysis', 'Videos', 'NLP', 'Chatbots', 'Frameworks', 'Education', 'Health', 'Financial Services', 'Logistics', 'Gaming', 'Human Resources', 'CRM', 'Contents Creation', 'Automation', 'Cybersecurity', 'Social Media', 'Environment', 'Smart Cities'\n"Excluded categories" are not valid categories and should never be included in a response.\n`;
     const inputText = `Task:${dataTask}\nuseCaseText:${useCaseText}\nsummary:${summary}\nCategories to be excluded:${excludedCategories.join(', ')}`;
 
     response = await createCompletion(inputText, systemContent, userContent, temperature);
     if (response && response.messageContent && response.messageContent.length > 10) {
-      categories = response.messageContent.split(', ').map(c => {
-        const category = c.split(': ')[1];
-        return removeDots(category);
+      console.log('[messageContent]', response.messageContent + '\n');
+      //1:Contents Creation:95, 2: Chatbots:90, 3: NLP:85
+      //1:{category_name_1:suitability score}, 2:{category_name_2:suitability score}, 3:{category_name_3:suitability score}
+      categoryScores = response.messageContent.split(', ').map(c => {
+        //console.log('[c]', c);
+        const [number, category, score] = c.split(':');
+        //console.log('[number]', number, '[category]', category, '[score]', score);
+        return { category: removeDots(category), score: parseFloat(score) };
       });
-      isValid = categories.every(isValidCategory);
+      console.log('[categoryScores]', categoryScores);
+      isValid = categoryScores.every(item => isValidCategory(item.category));
       if (!isValid) {
-        excludedCategories = excludedCategories.concat(categories.filter(c => !isValidCategory(c)));
-        console.log('[Attempt][Invalid] count:', attemptCount, '\ntemperature:', temperature, '\ncategories:', categories, '\nExcluded categories:', excludedCategories);
+        excludedCategories = excludedCategories.concat(
+          categoryScores
+            .filter(c => !isValidCategory(c.category) && c.category.length >= 2) // 길이가 2 이상인 경우에만 필터링합니다.
+            .map(c => c.category) // 각 요소에서 'category' 프로퍼티만 추출합니다.
+        );
+        console.log('[Attempt][Invalid] count:', attemptCount, '\ntemperature:', temperature, '\ncategoryScores:', categoryScores, '\nExcluded categories:', excludedCategories);
         temperature += 0.1;
         sleep(2000);
       } else {
@@ -83,9 +93,10 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
     } else {
       console.log('[OpenAI][ERROR] return response.messageContent is empty');
     }
-  }// categories 배열을 쉼표로 구분하여 리턴
-  return categories.join('.');
+  }
+  return categoryScores;
 }
+
 
 function get_categorysl(Category1st, Category2nd, Category3rd) {
   return [
@@ -140,7 +151,8 @@ async function extractData($) {
     if (summary.summary && summary.summary.length > 0) {
       const dataTask = el.attr('data-task');
       const useCaseText = el.find('a.use_case').text().trim();
-      const category = await categorizeDataTask(dataTask, useCaseText, summary.summary);
+      const categoryScores = await categorizeDataTask(dataTask, useCaseText, summary);
+      const category = categoryScores.map(item => item.category).join('.');
       const [Category1st, Category2nd, Category3rd] = category.split('.');
       console.log("[category]", category, "\n", "[Category1st]", Category1st, "\n", "[Category2nd]", Category2nd, "\n", "[Category3rd]", Category3rd);
       const categorysl = get_categorysl(Category1st, Category2nd, Category3rd);
@@ -161,9 +173,12 @@ async function extractData($) {
         summary: summary.summary,
         screenShot: summary.screenShot,
         category: category,
-        Category1st: Category1st,
-        Category2nd: Category2nd,
-        Category3rd: Category3rd,
+        Category1st: categoryScores[0].category,
+        Category1stScore: categoryScores[0].score,
+        Category2nd: categoryScores[1].category,
+        Category2ndScore: categoryScores[1].score,
+        Category3rd: categoryScores[2].category,
+        Category3rdScore: categoryScores[2].score,
         favicon: summary.favicon,
         categorys: [
           Category1st,
