@@ -44,14 +44,16 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
                 return removeDots(category);
             });
             isValid = categories.every(isValidCategory);
-        }
-        if (!isValid) {
-            excludedCategories = excludedCategories.concat(categories.filter(c => !isValidCategory(c)));
-            console.log('[Attempt][Invalid] count:', attemptCount, '\ntemperature:', temperature, '\ncategories:', categories, '\nExcluded categories:', excludedCategories);
-            temperature += 0.1;
-            sleep(2000);
+            if (!isValid) {
+                excludedCategories = excludedCategories.concat(categories.filter(c => !isValidCategory(c)));
+                console.log('[Attempt][Invalid] count:', attemptCount, '\ntemperature:', temperature, '\ncategories:', categories, '\nExcluded categories:', excludedCategories);
+                temperature += 0.1;
+                sleep(2000);
+            } else {
+                console.log('[Attempt][Success] count:', attemptCount);
+            }
         } else {
-            console.log('[Attempt][Success] count:', attemptCount);
+            console.log('[OpenAI][ERROR] return response.messageContent is empty');
         }
     }// categories 배열을 쉼표로 구분하여 리턴
     return categories.join('.');
