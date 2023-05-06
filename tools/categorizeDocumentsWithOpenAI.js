@@ -4,6 +4,7 @@ const { MongoClient } = require('mongodb');
 const { sleep, randomInRange, msToTime, convertToTimestamp, removeDots, shuffle } = require('../tools/utils');
 const path = require('path');
 const dotenv = require('dotenv');
+const { res } = require('pino-std-serializers');
 const envPath = path.join(__dirname, '..', '.env.local');
 dotenv.config({ path: envPath });
 
@@ -37,12 +38,13 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
         const inputText = `Task:${dataTask}\nuseCaseText:${useCaseText}\nsummary:${summary}\nCategories to be excluded:${excludedCategories.join(', ')}`;
 
         response = await createCompletion(inputText, systemContent, userContent, temperature);
-        categories = response.messageContent.split(', ').map(c => {
-            const category = c.split(': ')[1];
-            return removeDots(category);
-        });
-        isValid = categories.every(isValidCategory);
-
+        if (response && response.messageContent && response.messageContent.length > 10) {
+            categories = response.messageContent.split(', ').map(c => {
+                const category = c.split(': ')[1];
+                return removeDots(category);
+            });
+            isValid = categories.every(isValidCategory);
+        }
         if (!isValid) {
             excludedCategories = excludedCategories.concat(categories.filter(c => !isValidCategory(c)));
             console.log('[Attempt][Invalid] count:', attemptCount, '\ntemperature:', temperature, '\ncategories:', categories, '\nExcluded categories:', excludedCategories);
