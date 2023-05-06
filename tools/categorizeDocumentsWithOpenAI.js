@@ -62,7 +62,7 @@ async function asyncForEach(array, callback) {
         } catch (error) {
             console.error(`Error processing item at index ${index}:`, error);
         }
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // 1초 지연
+        await new Promise((resolve) => setTimeout(resolve, 100)); // 100ms 지연
     }
 }
 
