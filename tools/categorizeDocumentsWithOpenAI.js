@@ -26,10 +26,10 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
     let attemptCount = 0;
     let response;
     let categories;
-    let temperature = 0.5;
+    let temperature = 0.4;
     while (!isValid) {
-        if (temperature > 1.2 || temperature < 0.2) {
-            temperature = 0.2;
+        if (temperature > 0.9 || temperature < 0.1) {
+            temperature = 0.1;
             excludedCategories = [];
         }
         attemptCount += 1;
