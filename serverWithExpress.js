@@ -120,7 +120,8 @@ async function getCategoriesAndCounts(collection) {
     { $unwind: "$categories" },
     { $group: { _id: "$categories", count: { $sum: 1 } } },
     { $project: { category: "$_id", count: 1, _id: 0 } },
-    { $sort: { category: 1 } },
+    { $sort: { count: -1 } }, // 수정된 부분: 도큐멘트 수가 많은 순서대로 정렬
+    //{ $sort: { category: 1 } },
   ];
 
   const categories = await collection.aggregate(pipeline).toArray();

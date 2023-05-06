@@ -54,30 +54,34 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
   let attemptCount = 0;
   let response;
   let categories;
-  let temperature = 0.5;
+  let temperature = 0.4;
   while (!isValid) {
-    if (temperature > 1.2 || temperature < 0.2) {
-      temperature = 0.2;
+    if (temperature > 0.9 || temperature < 0.1) {
+      temperature = 0.1;
       excludedCategories = [];
     }
     attemptCount += 1;
-    const userContent = `For a given data task, please strictly select and rank the top 3 categories from the list below, and provide your response in the format '1: {category_name_1}, 2: {category_name_2}, 3: {category_name_3}'. The list of valid categories is: Speeches, Images, Data Analysis, Videos, NLP, Chatbots, Frameworks, Education, Health, Financial Services, Logistics, Gaming, Human Resources, CRM, Contents Creation, Automation, Cybersecurity, Social Media, Environment, Smart Cities. Note: "AI" is not a valid category and should not be included in the response.\n`;
+    const userContent = `Absolutely select the top 3 from the list below in order of highest relevance to the provided data Task, useCaseText, summary, and respond in the format of '1: {category_name_1}, 2: {category_name_2}, 3: {category_name_3}'.\n
+      A list of valid categories: 'Speeches', 'Images', 'Data Analysis', 'Videos', 'NLP', 'Chatbots', 'Frameworks', 'Education', 'Health', 'Financial Services', 'Logistics', 'Gaming', 'Human Resources', 'CRM', 'Contents Creation', 'Automation', 'Cybersecurity', 'Social Media', 'Environment', 'Smart Cities'\n"Excluded categories" are not valid categories and should never be included in a response.\n`;
     const inputText = `Task:${dataTask}\nuseCaseText:${useCaseText}\nsummary:${summary}\nCategories to be excluded:${excludedCategories.join(', ')}`;
 
     response = await createCompletion(inputText, systemContent, userContent, temperature);
-    categories = response.messageContent.split(', ').map(c => {
-      const category = c.split(': ')[1];
-      return removeDots(category);
-    });
-    isValid = categories.every(isValidCategory);
-
-    if (!isValid) {
-      excludedCategories = excludedCategories.concat(categories.filter(c => !isValidCategory(c)));
-      console.log('[Attempt][Invalid] count:', attemptCount, '\ntemperature:', temperature, '\ncategories:', categories, '\nExcluded categories:', excludedCategories);
-      temperature += 0.1;
-      sleep(2000);
+    if (response && response.messageContent && response.messageContent.length > 10) {
+      categories = response.messageContent.split(', ').map(c => {
+        const category = c.split(': ')[1];
+        return removeDots(category);
+      });
+      isValid = categories.every(isValidCategory);
+      if (!isValid) {
+        excludedCategories = excludedCategories.concat(categories.filter(c => !isValidCategory(c)));
+        console.log('[Attempt][Invalid] count:', attemptCount, '\ntemperature:', temperature, '\ncategories:', categories, '\nExcluded categories:', excludedCategories);
+        temperature += 0.1;
+        sleep(2000);
+      } else {
+        console.log('[Attempt][Success] count:', attemptCount);
+      }
     } else {
-      console.log('[Attempt][Success] count:', attemptCount);
+      console.log('[OpenAI][ERROR] return response.messageContent is empty');
     }
   }// categories 배열을 쉼표로 구분하여 리턴
   return categories.join('.');
