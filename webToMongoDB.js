@@ -56,6 +56,10 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
   let categories;
   let temperature = 0.5;
   while (!isValid) {
+    if (temperature > 1.2 || temperature < 0.2) {
+      temperature = 0.2;
+      excludedCategories = [];
+    }
     attemptCount += 1;
     const userContent = `For a given data task, please strictly select and rank the top 3 categories from the list below, and provide your response in the format '1: {category_name_1}, 2: {category_name_2}, 3: {category_name_3}'. The list of valid categories is: Speeches, Images, Data Analysis, Videos, NLP, Chatbots, Frameworks, Education, Health, Financial Services, Logistics, Gaming, Human Resources, CRM, Contents Creation, Automation, Cybersecurity, Social Media, Environment, Smart Cities. Note: "AI" is not a valid category and should not be included in the response.\n`;
     const inputText = `Task:${dataTask}\nuseCaseText:${useCaseText}\nsummary:${summary}\nCategories to be excluded:${excludedCategories.join(', ')}`;
@@ -69,17 +73,12 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
 
     if (!isValid) {
       excludedCategories = excludedCategories.concat(categories.filter(c => !isValidCategory(c)));
+      console.log('[Attempt][Invalid] count:', attemptCount, '\ntemperature:', temperature, '\ncategories:', categories, '\nExcluded categories:', excludedCategories);
       temperature += 0.1;
-      console.log('[Attempt][Invalid] count:', attemptCount, 'categories:', categories, 'Excluded categories:', excludedCategories);
+      sleep(2000);
     } else {
       console.log('[Attempt][Success] count:', attemptCount);
     }
-
-    if (++attemptCount > 20) {
-      console.log("[Attempt][Failed] count:", attemptCount);
-      break;
-    }
-    sleep(3000);
   }// categories 배열을 쉼표로 구분하여 리턴
   return categories.join('.');
 }
