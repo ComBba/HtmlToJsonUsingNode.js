@@ -20,6 +20,12 @@ function isValidCategory(category) {
     return validCategories.includes(category);
 }
 
+function isValidScore(score) {
+    if (score == null || score == undefined || score == NaN || score.length == 0)
+        return false;
+    return score > 10 && score <= 100;
+}
+
 async function categorizeDataTask(dataTask, useCaseText, summary) {
     const systemContent = "You are a helpful assistant that categorizes data.";
     let excludedCategories = [];
@@ -52,6 +58,8 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
             });
             console.log('[categoryScores]', categoryScores);
             isValid = categoryScores.every(item => isValidCategory(item.category));
+            const isValidNumber = categoryScores.every(item => isValidScore(item.score));
+
             if (!isValid) {
                 excludedCategories = excludedCategories.concat(
                     categoryScores
@@ -60,6 +68,10 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
                 );
                 console.log('[Attempt][Invalid] count:', attemptCount, '\ntemperature:', temperature, '\ncategoryScores:', categoryScores, '\nExcluded categories:', excludedCategories);
                 temperature += 0.1;
+                sleep(2000);
+            } else if (!isValidNumber) {
+                console.log('[Attempt][InvalidNumber] count:', attemptCount, '\ntemperature:', temperature, '\ncategoryScores:', categoryScores, '\nExcluded categories:', excludedCategories);
+                temperature -= 0.1;
                 sleep(2000);
             } else {
                 console.log('[Attempt][Success] count:', attemptCount);
