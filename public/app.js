@@ -1,6 +1,7 @@
 // public/app.js
 const itemsPerPage = 9;
 let currentPage = 1;
+const searchInput = document.getElementById("search-input");
 
 (async function () {
   fetchData(currentPage);
@@ -9,7 +10,6 @@ let currentPage = 1;
   const categories = await fetchCategories();
   renderCategories(categories);
 
-  const searchInput = document.getElementById("search-input");
   searchInput.addEventListener("input", onSearchInput);
 })();
 
@@ -74,7 +74,7 @@ function displayGallery(data, page) {
 
     const content = document.createElement("div");
     content.className = "content";
-    content.innerText = item.summary;
+    content.innerHTML = '<br/>&nbsp;' + item.summary + '<br/>&nbsp;'.repeat(3);
 
     const categoriesScoreContainer = document.createElement("div");
     categoriesScoreContainer.className = "category-score-container";
@@ -209,6 +209,10 @@ function renderCategories(categories) {
   categories.forEach(({ category, count }) => {
     const categoryElement = document.createElement('span');
     categoryElement.textContent = `${category} (${count})`;
+    categoryElement.addEventListener("click", () => {
+      searchInput.value = category;
+      onSearchInput({ target: { value: category } });
+    });
     categoriesContainer.appendChild(categoryElement);
   });
 }

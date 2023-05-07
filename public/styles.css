@@ -42,6 +42,12 @@ header {
   flex-basis: 24%;
   margin: 0.5em 0;
   text-align: center;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.categories-container span:hover {
+  text-decoration: underline;
 }
 
 .gallery-container {
@@ -141,12 +147,12 @@ header {
   padding: 10px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   opacity: 0;
   transition: opacity 0.3s;
   border-radius: 4px;
   overflow-y: scroll;
-  font-size: 80%;
+  font-size: 100%;
 }
 
 .gallery-item:hover .content {
