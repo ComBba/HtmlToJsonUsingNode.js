@@ -6,6 +6,7 @@ const { removeStopwords, eng, kor } = require('stopword');
 const path = require('path');
 const dotenv = require('dotenv');
 const { res } = require('pino-std-serializers');
+const { exit } = require('process');
 const envPath = path.join(__dirname, '..', '.env.local');
 dotenv.config({ path: envPath });
 
@@ -54,6 +55,12 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
         const inputText = `Task:${dataTask}\nuseCaseText:${useCaseText}\nsummary:${summary}\nCategories to be excluded:${excludedCategories.join(', ')}`;
 
         response = await createCompletion(inputText, systemContent, userContent, temperature);
+        if (attemptCount >= 100) {
+            console.log('[Attempt][\x1b[31mmax attempts\x1b[0m] count:', attemptCount, '\ntemperature:', temperature);
+            console.log('[response]', response)
+            return "Max attempts";
+        }
+
         if (response && response.messageContent && response.messageContent.length > 10) {
             console.log('[messageContent]', response.messageContent);
             if (!isCompletion(response.messageContent)) {
@@ -86,7 +93,7 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
             } else if (!isValidNumber) {
                 isValid = false;
                 console.log('[Attempt][InvalidNumber] count:', attemptCount, '\ntemperature:', temperature, '\ncategoryScores:', categoryScores, '\nExcluded categories:', excludedCategories);
-                temperature -= 0.1;
+                temperature += 0.1;
                 sleep(3000);
             } else if (categoryScores.length != 5) {
                 isValid = false;
@@ -188,6 +195,10 @@ async function asyncForEach(array, callback) {
                 }
                 */
                 const categoryScores = await categorizeDataTask(dataTask, useCaseText, summary);
+                if (categoryScores == "Max attempts") {
+                    console.log(`[\x1b[33m${index + 1}\x1b[0m/${array.length}][\x1b[31mERROR\x1b[0m][${dataId}] ${dataName} ${dataTask}\n`);
+                    exit();
+                }
                 if (categoryScores.length > 2) {
                     const category = categoryScores.slice(0, 3).map(item => item.category).join('.');
                     const [Category1st, Category2nd, Category3rd] = category.split('.');
