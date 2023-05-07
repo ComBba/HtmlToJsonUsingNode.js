@@ -48,7 +48,7 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
 
         response = await createCompletion(inputText, systemContent, userContent, temperature);
         if (response && response.messageContent && response.messageContent.length > 10) {
-            console.log('[messageContent]', response.messageContent + '\n');
+            console.log('[messageContent]', response.messageContent);
             //1:Contents Creation:95, 2: Chatbots:90, 3: NLP:85
             //1:{category_name_1:suitability score}, 2:{category_name_2:suitability score}, 3:{category_name_3:suitability score}
             categoryScores = response.messageContent.split(', ').map(c => {
