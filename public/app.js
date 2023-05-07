@@ -76,8 +76,27 @@ function displayGallery(data, page) {
     content.className = "content";
     content.innerText = item.summary;
 
+    const categoriesScoreContainer = document.createElement("div");
+    categoriesScoreContainer.className = "category-score-container";
+
+    const category1 = document.createElement("div");
+    category1.className = "category-score";
+    category1.innerText = `${item.Category1st}: ${item.Category1stScore.toFixed(1)}`;
+    categoriesScoreContainer.appendChild(category1);
+
+    const category2 = document.createElement("div");
+    category2.className = "category-score";
+    category2.innerText = `${item.Category2nd}: ${item.Category2ndScore.toFixed(1)}`;
+    categoriesScoreContainer.appendChild(category2);
+
+    const category3 = document.createElement("div");
+    category3.className = "category-score";
+    category3.innerText = `${item.Category3rd}: ${item.Category3rdScore.toFixed(1)}`;
+    categoriesScoreContainer.appendChild(category3);
+
     galleryItem.appendChild(img);
     galleryItem.appendChild(content);
+    galleryItem.appendChild(categoriesScoreContainer);
     gallery.appendChild(galleryItem);
   });
 

@@ -32,6 +32,7 @@ header {
 
 .categories-container {
   display: flex;
+  width: 840px;
   flex-wrap: wrap;
   justify-content: space-evenly;
   margin: 1em 0;
@@ -60,14 +61,16 @@ header {
 .gallery-item {
   position: relative;
   width: 200px;
-  height: 150px;
+  height: 230px;
   margin: 10px;
   overflow: hidden;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   border-radius: 4px;
   background-color: #3a3d42;
   padding-bottom: 20px;
-  /* 추가 */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
 .gallery-item img {
@@ -75,6 +78,56 @@ header {
   height: auto;
   object-fit: scale-down;
   border-radius: 4px;
+}
+
+.gallery-item .favicon {
+  width: 16px;
+  height: 16px;
+  position: absolute;
+  top: 7px;
+  left: 5px;
+  border: 1px solid black;
+}
+
+.gallery-item .dataName {
+  position: absolute;
+  color: white;
+  font-size: 12px;
+  padding: 3px 6px;
+  border-radius: 12px;
+  background-color: rgba(75, 75, 75, 0.8);
+  top: 5px;
+  left: 25px;
+}
+
+.gallery-item .dataTask {
+  position: absolute;
+  color: white;
+  font-size: 12px;
+  padding: 3px 6px;
+  border-radius: 12px;
+  background-color: rgba(87, 124, 28, 0.8);
+  top: 30px;
+  left: 5px;
+}
+
+.category-score-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 5px;
+  margin-top: 10px;
+}
+
+.gallery-item .category-score {
+  font-size: 12px;
+  padding: 3px 6px;
+  background-color: rgba(245, 166, 35, 0.8);
+  color: white;
+  border-radius: 12px;
+  margin-bottom: 5px;
 }
 
 .gallery-item .content {
@@ -99,45 +152,6 @@ header {
 .gallery-item:hover .content {
   opacity: 1;
 }
-
-.gallery-item .dataName,
-.gallery-item .dataTask {
-  position: absolute;
-  color: white;
-  font-size: 12px;
-  padding: 3px 6px;
-  border-radius: 12px;
-}
-
-.gallery-item .dataName {
-  position: absolute;
-  color: white;
-  font-size: 12px;
-  padding: 3px 6px;
-  border-radius: 12px;
-  background-color: rgba(75, 75, 75, 0.8);
-  top: 5px;
-  left: 25px;
-  /* 수정: 왼쪽 위치 조정 */
-}
-
-.gallery-item .favicon {
-  width: 16px;
-  height: 16px;
-  position: absolute;
-  top: 7px;
-  /* 수정: 상단 위치 조정 */
-  left: 5px;
-  /* 수정: 왼쪽 위치 조정 */
-  border: 1px solid black;
-}
-
-.gallery-item .dataTask {
-  background-color: rgba(87, 124, 28, 0.8);
-  top: 30px;
-  left: 5px;
-}
-
 
 #pagination {
   margin: 20px;
