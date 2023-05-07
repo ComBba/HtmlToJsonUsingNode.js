@@ -54,7 +54,8 @@ function isValidScore(score) {
 }
 
 function isCompletion(text) {
-  const regex = /^1:(Speeches|Images|Data Analysis|Videos|NLP|Chatbots|Frameworks|Education|Health|Financial Services|Logistics|Gaming|Human Resources|CRM|Contents Creation|Automation|Cybersecurity|Social Media|Environment|Smart Cities):[0-9]{1,3}(, (\d:(Speeches|Images|Data Analysis|Videos|NLP|Chatbots|Frameworks|Education|Health|Financial Services|Logistics|Gaming|Human Resources|CRM|Contents Creation|Automation|Cybersecurity|Social Media|Environment|Smart Cities):[0-9]{1,3})){4}$/;
+  const regex = /^1: ?([A-Za-z ]+): ?[0-9]{1,3}(, (\d: ?([A-Za-z ]+): ?[0-9]{1,3})){4}$/;
+  //const regex = /^1: ?(Speeches|Images|Data Analysis|Videos|NLP|Chatbots|Frameworks|Education|Health|Financial Services|Logistics|Gaming|Human Resources|CRM|Contents Creation|Automation|Cybersecurity|Social Media|Environment|Smart Cities): ?[0-9]{1,3}(, (\d: ?(Speeches|Images|Data Analysis|Videos|NLP|Chatbots|Frameworks|Education|Health|Financial Services|Logistics|Gaming|Human Resources|CRM|Contents Creation|Automation|Cybersecurity|Social Media|Environment|Smart Cities): ?[0-9]{1,3})){4}$/;
 
   return regex.test(text);
 }
@@ -83,6 +84,7 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
       console.log('[messageContent]', response.messageContent);
       if (!isCompletion(response.messageContent)) {
         temperature += 0.1;
+        console.log('[Attempt][\x1b[31mregex Fail\x1b[0m] count:', attemptCount, '\ntemperature:', temperature);
         sleep(1000);
         continue;
       }

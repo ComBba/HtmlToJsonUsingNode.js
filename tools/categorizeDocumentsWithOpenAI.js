@@ -24,11 +24,12 @@ function isValidCategory(category) {
 function isValidScore(score) {
     if (score == null || score == undefined || score == NaN)
         return false;
-    return score > 10 && score <= 100;
+    return score >= 10 && score <= 100;
 }
 
 function isCompletion(text) {
-    const regex = /^1:(Speeches|Images|Data Analysis|Videos|NLP|Chatbots|Frameworks|Education|Health|Financial Services|Logistics|Gaming|Human Resources|CRM|Contents Creation|Automation|Cybersecurity|Social Media|Environment|Smart Cities):[0-9]{1,3}(, (\d:(Speeches|Images|Data Analysis|Videos|NLP|Chatbots|Frameworks|Education|Health|Financial Services|Logistics|Gaming|Human Resources|CRM|Contents Creation|Automation|Cybersecurity|Social Media|Environment|Smart Cities):[0-9]{1,3})){4}$/;
+    const regex = /^1: ?([A-Za-z ]+): ?[0-9]{1,3}(, (\d: ?([A-Za-z ]+): ?[0-9]{1,3})){4}$/;
+    //const regex = /^1: ?(Speeches|Images|Data Analysis|Videos|NLP|Chatbots|Frameworks|Education|Health|Financial Services|Logistics|Gaming|Human Resources|CRM|Contents Creation|Automation|Cybersecurity|Social Media|Environment|Smart Cities): ?[0-9]{1,3}(, (\d: ?(Speeches|Images|Data Analysis|Videos|NLP|Chatbots|Frameworks|Education|Health|Financial Services|Logistics|Gaming|Human Resources|CRM|Contents Creation|Automation|Cybersecurity|Social Media|Environment|Smart Cities): ?[0-9]{1,3})){4}$/;
 
     return regex.test(text);
 }
@@ -57,6 +58,7 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
             console.log('[messageContent]', response.messageContent);
             if (!isCompletion(response.messageContent)) {
                 temperature += 0.1;
+                console.log('[Attempt][\x1b[31mregex Fail\x1b[0m] count:', attemptCount, '\ntemperature:', temperature);
                 sleep(1000);
                 continue;
             }
@@ -157,6 +159,7 @@ async function asyncForEach(array, callback) {
         console.log(`Found ${documents.length} documents to categorize.`);
         await asyncForEach(documents, async (doc, index, array) => {
             let { _id, dataId, dataName, dataTask, dataTaskSlug, useCaseText, summary, Category1st, Category1stScore, Category2nd, Category2ndScore, Category3rd, Category3rdScore, Category4th, Category5th, category, categorysl } = doc;
+            //if (false) {
             if (category && category.split('.').length == 3 && Category1st.toLowerCase() == categorysl[0] && Category2nd.toLowerCase() == categorysl[1] && Category3rd.toLowerCase() == categorysl[2]
                 && isValidCategory(Category1st) && isValidCategory(Category2nd) && isValidCategory(Category3rd) && isValidCategory(Category4th) && isValidCategory(Category5th)
                 && Category1stScore > 10 && Category2ndScore > 10 && Category3rdScore > 10) {
@@ -219,7 +222,7 @@ async function asyncForEach(array, callback) {
                 } else {
                     console.log(`[${index + 1}/${array.length}][Fail][${dataId}] ${dataName} ${dataTask}\n[useCaseText] ${useCaseText}\n[category] ${category}`);
                 }
-                await sleep(5000); // 10초 딜레이를 추가합니다.
+                await sleep(2000); // 2초 딜레이를 추가합니다.
             }
         });
     } catch (error) {
