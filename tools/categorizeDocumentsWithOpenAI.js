@@ -59,7 +59,7 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
             if (!isCompletion(response.messageContent)) {
                 temperature += 0.1;
                 console.log('[Attempt][\x1b[31mregex Fail\x1b[0m] count:', attemptCount, '\ntemperature:', temperature);
-                sleep(1000);
+                sleep(3000);
                 continue;
             }
             //1:Contents Creation:95, 2: Chatbots:90, 3: NLP:85
@@ -82,16 +82,16 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
                 );
                 console.log('[Attempt][Invalid] count:', attemptCount, '\ntemperature:', temperature, '\ncategoryScores:', categoryScores, '\nExcluded categories:', excludedCategories);
                 temperature += 0.1;
-                sleep(1000);
+                sleep(3000);
             } else if (!isValidNumber) {
                 isValid = false;
                 console.log('[Attempt][InvalidNumber] count:', attemptCount, '\ntemperature:', temperature, '\ncategoryScores:', categoryScores, '\nExcluded categories:', excludedCategories);
                 temperature -= 0.1;
-                sleep(1000);
+                sleep(3000);
             } else if (categoryScores.length != 5) {
                 isValid = false;
                 console.log('[Attempt][InvalidCategoryScoresCount] categoryScores.length:', categoryScores.length, '\n count:', attemptCount, '\ntemperature:', temperature, '\ncategoryScores:', categoryScores, '\nExcluded categories:', excludedCategories);
-                sleep(1000);
+                sleep(3000);
             } else {
                 console.log('[Attempt][Success] count:', attemptCount);
             }
@@ -132,6 +132,10 @@ function get_search_keywords_filtered(search_keywords_filtered) {
 
 async function asyncForEach(array, callback) {
     for (let index = 0; index < array.length; index++) {
+        //for (let index = 200; index < 1126; index++) {
+        //for (let index = 1125; index < 2051; index++) {
+        //for (let index = 2050; index < 2976; index++) {
+        //for (let index = 2975; index < 3901; index++) {
         try {
             await callback(array[index], index, array);
         } catch (error) {
@@ -222,7 +226,7 @@ async function asyncForEach(array, callback) {
                 } else {
                     console.log(`[${index + 1}/${array.length}][Fail][${dataId}] ${dataName} ${dataTask}\n[useCaseText] ${useCaseText}\n[category] ${category}`);
                 }
-                await sleep(2000); // 2초 딜레이를 추가합니다.
+                await sleep(5000); // 5초 딜레이를 추가합니다.
             }
         });
     } catch (error) {
