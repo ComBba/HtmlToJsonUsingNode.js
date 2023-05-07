@@ -53,6 +53,12 @@ function isValidScore(score) {
   return score > 10 && score <= 100;
 }
 
+function isCompletion(text) {
+  const regex = /^1:(Speeches|Images|Data Analysis|Videos|NLP|Chatbots|Frameworks|Education|Health|Financial Services|Logistics|Gaming|Human Resources|CRM|Contents Creation|Automation|Cybersecurity|Social Media|Environment|Smart Cities):[0-9]{1,3}(, (\d:(Speeches|Images|Data Analysis|Videos|NLP|Chatbots|Frameworks|Education|Health|Financial Services|Logistics|Gaming|Human Resources|CRM|Contents Creation|Automation|Cybersecurity|Social Media|Environment|Smart Cities):[0-9]{1,3})){4}$/;
+
+  return regex.test(text);
+}
+
 async function categorizeDataTask(dataTask, useCaseText, summary) {
   const systemContent = "You are a helpful assistant that categorizes data.";
   let excludedCategories = [];
@@ -68,13 +74,18 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
     }
     attemptCount += 1;
     //const userContent = `Please select the top 3 from the list below in order of highest relevance to the provided data Task, useCaseText, summary, and respond in the format of '1: {category_name_1: suitability score}, 2: {category_name_2: suitability score}, 3: {category_name_3: suitability score}'. Assign a suitability score from 0 to 100 for each category, with 100 being the most suitable and 0 being the least suitable.\n
-    const userContent = `Absolutely select the top 3 from the list below in order of highest relevance to the provided data Task, useCaseText, summary, and Assign a suitability score from 0 to 100 for each category, with 100 being the most suitable and 0 being the least suitable. respond in the format of '1:{category_name_1:suitability score}, 2:{category_name_2:suitability score}, 3:{category_name_3:suitability score}'.\n
+    const userContent = `Absolutely select the top 5 from the list below in order of highest relevance to the provided data Task, useCaseText, summary, and Assign a suitability score from 0 to 100 for each category, with 100 being the most suitable and 0 being the least suitable. respond in the format of '1:{category_name_1:suitability score}, 2:{category_name_2:suitability score}, 3:{category_name_3:suitability score}, 4:{category_name_4:suitability score}, 5:{category_name_5:suitability score}'.\n
       A list of valid categories: 'Speeches', 'Images', 'Data Analysis', 'Videos', 'NLP', 'Chatbots', 'Frameworks', 'Education', 'Health', 'Financial Services', 'Logistics', 'Gaming', 'Human Resources', 'CRM', 'Contents Creation', 'Automation', 'Cybersecurity', 'Social Media', 'Environment', 'Smart Cities'\n"Excluded categories" are not valid categories and should never be included in a response.\n`;
     const inputText = `Task:${dataTask}\nuseCaseText:${useCaseText}\nsummary:${summary}\nCategories to be excluded:${excludedCategories.join(', ')}`;
 
     response = await createCompletion(inputText, systemContent, userContent, temperature);
     if (response && response.messageContent && response.messageContent.length > 10) {
-      console.log('[messageContent]', response.messageContent + '\n');
+      console.log('[messageContent]', response.messageContent);
+      if (!isCompletion(response.messageContent)) {
+        temperature += 0.1;
+        sleep(1000);
+        continue;
+      }
       //1:Contents Creation:95, 2: Chatbots:90, 3: NLP:85
       //1:{category_name_1:suitability score}, 2:{category_name_2:suitability score}, 3:{category_name_3:suitability score}
       categoryScores = response.messageContent.split(', ').map(c => {
@@ -85,7 +96,7 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
       });
       console.log('[categoryScores]', categoryScores);
       isValid = categoryScores.every(item => isValidCategory(item.category));
-      const isValidNumber = categoryScores.every(item => isValidScore(item.score));
+      const isValidNumber = categoryScores.slice(0, 3).every(item => isValidScore(item.score));
 
       if (!isValid) {
         excludedCategories = excludedCategories.concat(
@@ -95,11 +106,16 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
         );
         console.log('[Attempt][Invalid] count:', attemptCount, '\ntemperature:', temperature, '\ncategoryScores:', categoryScores, '\nExcluded categories:', excludedCategories);
         temperature += 0.1;
-        sleep(2000);
+        sleep(1000);
       } else if (!isValidNumber) {
+        isValid = false;
         console.log('[Attempt][InvalidNumber] count:', attemptCount, '\ntemperature:', temperature, '\ncategoryScores:', categoryScores, '\nExcluded categories:', excludedCategories);
         temperature -= 0.1;
-        sleep(2000);
+        sleep(1000);
+      } else if (categoryScores.length != 5) {
+        isValid = false;
+        console.log('[Attempt][InvalidCategoryScoresCount] categoryScores.length:', categoryScores.length, '\n count:', attemptCount, '\ntemperature:', temperature, '\ncategoryScores:', categoryScores, '\nExcluded categories:', excludedCategories);
+        sleep(1000);
       } else {
         console.log('[Attempt][Success] count:', attemptCount);
       }

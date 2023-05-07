@@ -22,9 +22,15 @@ function isValidCategory(category) {
 }
 
 function isValidScore(score) {
-    if (score == null || score == undefined || score == NaN || score.length == 0)
+    if (score == null || score == undefined || score == NaN)
         return false;
     return score > 10 && score <= 100;
+}
+
+function isCompletion(text) {
+    const regex = /^1:(Speeches|Images|Data Analysis|Videos|NLP|Chatbots|Frameworks|Education|Health|Financial Services|Logistics|Gaming|Human Resources|CRM|Contents Creation|Automation|Cybersecurity|Social Media|Environment|Smart Cities):[0-9]{1,3}(, (\d:(Speeches|Images|Data Analysis|Videos|NLP|Chatbots|Frameworks|Education|Health|Financial Services|Logistics|Gaming|Human Resources|CRM|Contents Creation|Automation|Cybersecurity|Social Media|Environment|Smart Cities):[0-9]{1,3})){4}$/;
+
+    return regex.test(text);
 }
 
 async function categorizeDataTask(dataTask, useCaseText, summary) {
@@ -42,13 +48,18 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
         }
         attemptCount += 1;
         //const userContent = `Please select the top 3 from the list below in order of highest relevance to the provided data Task, useCaseText, summary, and respond in the format of '1: {category_name_1: suitability score}, 2: {category_name_2: suitability score}, 3: {category_name_3: suitability score}'. Assign a suitability score from 0 to 100 for each category, with 100 being the most suitable and 0 being the least suitable.\n
-        const userContent = `Absolutely select the top 3 from the list below in order of highest relevance to the provided data Task, useCaseText, summary, and Assign a suitability score from 0 to 100 for each category, with 100 being the most suitable and 0 being the least suitable. respond in the format of '1:{category_name_1:suitability score}, 2:{category_name_2:suitability score}, 3:{category_name_3:suitability score}'.\n
+        const userContent = `Absolutely select the top 5 from the list below in order of highest relevance to the provided data Task, useCaseText, summary, and Assign a suitability score from 0 to 100 for each category, with 100 being the most suitable and 0 being the least suitable. respond in the format of '1:{category_name_1:suitability score}, 2:{category_name_2:suitability score}, 3:{category_name_3:suitability score}, 4:{category_name_4:suitability score}, 5:{category_name_5:suitability score}'.\n
         A list of valid categories: 'Speeches', 'Images', 'Data Analysis', 'Videos', 'NLP', 'Chatbots', 'Frameworks', 'Education', 'Health', 'Financial Services', 'Logistics', 'Gaming', 'Human Resources', 'CRM', 'Contents Creation', 'Automation', 'Cybersecurity', 'Social Media', 'Environment', 'Smart Cities'\n"Excluded categories" are not valid categories and should never be included in a response.\n`;
         const inputText = `Task:${dataTask}\nuseCaseText:${useCaseText}\nsummary:${summary}\nCategories to be excluded:${excludedCategories.join(', ')}`;
 
         response = await createCompletion(inputText, systemContent, userContent, temperature);
         if (response && response.messageContent && response.messageContent.length > 10) {
             console.log('[messageContent]', response.messageContent);
+            if (!isCompletion(response.messageContent)) {
+                temperature += 0.1;
+                sleep(1000);
+                continue;
+            }
             //1:Contents Creation:95, 2: Chatbots:90, 3: NLP:85
             //1:{category_name_1:suitability score}, 2:{category_name_2:suitability score}, 3:{category_name_3:suitability score}
             categoryScores = response.messageContent.split(', ').map(c => {
@@ -59,7 +70,7 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
             });
             console.log('[categoryScores]', categoryScores);
             isValid = categoryScores.every(item => isValidCategory(item.category));
-            const isValidNumber = categoryScores.every(item => isValidScore(item.score));
+            const isValidNumber = categoryScores.slice(0, 3).every(item => isValidScore(item.score));
 
             if (!isValid) {
                 excludedCategories = excludedCategories.concat(
@@ -69,11 +80,16 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
                 );
                 console.log('[Attempt][Invalid] count:', attemptCount, '\ntemperature:', temperature, '\ncategoryScores:', categoryScores, '\nExcluded categories:', excludedCategories);
                 temperature += 0.1;
-                sleep(2000);
+                sleep(1000);
             } else if (!isValidNumber) {
+                isValid = false;
                 console.log('[Attempt][InvalidNumber] count:', attemptCount, '\ntemperature:', temperature, '\ncategoryScores:', categoryScores, '\nExcluded categories:', excludedCategories);
                 temperature -= 0.1;
-                sleep(2000);
+                sleep(1000);
+            } else if (categoryScores.length != 5) {
+                isValid = false;
+                console.log('[Attempt][InvalidCategoryScoresCount] categoryScores.length:', categoryScores.length, '\n count:', attemptCount, '\ntemperature:', temperature, '\ncategoryScores:', categoryScores, '\nExcluded categories:', excludedCategories);
+                sleep(1000);
             } else {
                 console.log('[Attempt][Success] count:', attemptCount);
             }
@@ -134,24 +150,40 @@ async function asyncForEach(array, callback) {
         //const documents = await collection.find({ category: { $exists: false } }).toArray();
         const documents = await collection.find({}, {
             projection: {
-                _id: 1, dataId: 1, dataName: 1, dataTask: 1, dataTaskSlug: 1, useCaseText: 1, summary: 1, Category1st: 1, Category2nd: 1, Category3rd: 1,
+                _id: 1, dataId: 1, dataName: 1, dataTask: 1, dataTaskSlug: 1, useCaseText: 1, summary: 1, Category1st: 1, Category2nd: 1, Category3rd: 1, Category4th: 1, Category5th: 1, category: 1,
                 Category1stScore: 1, Category2ndScore: 1, Category3rdScore: 1, categorysl: 1 // 점수 필드 추가
             }
         }).toArray();
         console.log(`Found ${documents.length} documents to categorize.`);
         await asyncForEach(documents, async (doc, index, array) => {
-            const { _id, dataId, dataName, dataTask, dataTaskSlug, useCaseText, summary, Category1st, Category1stScore, Category2nd, Category2ndScore, Category3rd, Category3rdScore, categorysl } = doc;
-            //console.log('[MongoDB][Category1st]', Category1st, ':', Category1stScore, ' / [Category2nd]', Category2nd, ':', Category2ndScore, ' / [Category3rd]', Category3rd, ':', Category3rdScore)
-            //console.log('[MongoDB][categorysl]', categorysl);
-            if (Category1st.toLowerCase() == categorysl[0] && Category2nd.toLowerCase() == categorysl[1] && Category3rd.toLowerCase() == categorysl[2]
-                && isValidCategory(Category1st) && isValidCategory(Category2nd) && isValidCategory(Category3rd)
+            let { _id, dataId, dataName, dataTask, dataTaskSlug, useCaseText, summary, Category1st, Category1stScore, Category2nd, Category2ndScore, Category3rd, Category3rdScore, Category4th, Category5th, category, categorysl } = doc;
+            if (category && category.split('.').length == 3 && Category1st.toLowerCase() == categorysl[0] && Category2nd.toLowerCase() == categorysl[1] && Category3rd.toLowerCase() == categorysl[2]
+                && isValidCategory(Category1st) && isValidCategory(Category2nd) && isValidCategory(Category3rd) && isValidCategory(Category4th) && isValidCategory(Category5th)
                 && Category1stScore > 10 && Category2ndScore > 10 && Category3rdScore > 10) {
-                console.log(`[\x1b[33m${index + 1}\x1b[0m/${array.length}][\x1b[32mSKIPPED\x1b[0m][${dataId}] ${dataName} ${dataTask}\n[useCaseText] ${useCaseText}\n[Categories] ${Category1st}:${Category1stScore}, ${Category2nd}:${Category2ndScore}, ${Category3rd}:${Category3rdScore}\n`);
+                //console.log('[MongoDB][Category1st]', Category1st, ':', Category1stScore, ' / [Category2nd]', Category2nd, ':', Category2ndScore, ' / [Category3rd]', Category3rd, ':', Category3rdScore)
+                //console.log('[MongoDB][categorysl]', categorysl);
+                console.log(`[\x1b[33m${index + 1}\x1b[0m/${array.length}][\x1b[32mSKIPPED\x1b[0m][${dataId}] ${dataName} ${dataTask}\n[useCaseText] ${useCaseText}\n[Categories] ${category}\n[CategoryScores] ${Category1st}:${Category1stScore}, ${Category2nd}:${Category2ndScore}, ${Category3rd}:${Category3rdScore}\n`);
                 //await sleep(1000); // 1초 딜레이를 추가합니다. 
             } else {
+                /*
+                const isCategoryLengthValid = category && category.split('.').length == 3;
+                const areCategoryNamesValid = Category1st.toLowerCase() == categorysl[0] && Category2nd.toLowerCase() == categorysl[1] && Category3rd.toLowerCase() == categorysl[2];
+                const areCategoriesValid = isValidCategory(Category1st) && isValidCategory(Category2nd) && isValidCategory(Category3rd) && isValidCategory(Category4th) && isValidCategory(Category5th);
+                const areCategoryScoresValid = Category1stScore > 10 && Category2ndScore > 10 && Category3rdScore > 10;
+
+                if (isCategoryLengthValid && areCategoryNamesValid && areCategoriesValid && areCategoryScoresValid) {
+                    // ...
+                } else {
+                    console.log("isCategoryLengthValid:", isCategoryLengthValid);
+                    console.log("areCategoryNamesValid:", areCategoryNamesValid);
+                    console.log("areCategoriesValid:", areCategoriesValid);
+                    console.log("areCategoryScoresValid:", areCategoryScoresValid);
+                }
+                */
                 const categoryScores = await categorizeDataTask(dataTask, useCaseText, summary);
                 if (categoryScores.length > 2) {
-                    const category = categoryScores.map(item => item.category).join('.');
+                    const category = categoryScores.slice(0, 3).map(item => item.category).join('.');
+                    const [Category1st, Category2nd, Category3rd] = category.split('.');
                     const categorysl = get_categorysl(Category1st, Category2nd, Category3rd);
                     const search_keywords = get_search_keywords(dataName, dataTask, dataTaskSlug, summary, useCaseText, categorysl);
                     const search_keywordsl = search_keywords.join(' ');
@@ -168,6 +200,10 @@ async function asyncForEach(array, callback) {
                                 Category2ndScore: categoryScores[1].score,
                                 Category3rd: categoryScores[2].category,
                                 Category3rdScore: categoryScores[2].score,
+                                Category4th: categoryScores[3].category,
+                                Category4thScore: categoryScores[3].score,
+                                Category5th: categoryScores[4].category,
+                                Category5thScore: categoryScores[4].score,
                                 categorys: [
                                     Category1st,
                                     Category2nd,
