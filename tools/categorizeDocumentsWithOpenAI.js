@@ -2,6 +2,7 @@
 const { createCompletion } = require('../lib/openaiHelper.js');
 const { MongoClient } = require('mongodb');
 const { sleep, randomInRange, msToTime, convertToTimestamp, removeDots, shuffle } = require('../tools/utils');
+const { removeStopwords, eng, kor } = require('stopword');
 const path = require('path');
 const dotenv = require('dotenv');
 const { res } = require('pino-std-serializers');
@@ -83,6 +84,34 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
     return categoryScores;
 }
 
+function get_categorysl(Category1st, Category2nd, Category3rd) {
+    return [
+        Category1st.toLowerCase(),
+        Category2nd.toLowerCase(),
+        Category3rd.toLowerCase()
+    ];
+}
+function get_search_keywords(dataName, dataTask, dataTaskSlug, summary, useCaseText, categorysl) {
+    return [
+        dataName.toLowerCase().trim(),
+        dataTask.toLowerCase().trim(),
+        dataTaskSlug.toLowerCase().trim(),
+        summary.toLowerCase().trim(),
+        useCaseText.toLowerCase().trim(),
+        categorysl.join(' ').trim()
+    ];
+}
+// 중복단어들을 제거한, 불용어들을 제외한 검색어 리턴, 영문,한글 지원, text index search에 사용예정
+function get_search_keywords_filtered(search_keywords_filtered) {
+    search_keywords_filtered = removeStopwords(search_keywords_filtered.split(' '), eng).join(' ');
+    search_keywords_filtered = removeStopwords(search_keywords_filtered.split(' '), kor).join(' ');
+    search_keywords_filtered = search_keywords_filtered.replace(/[.,;:]/g, ''); // Remove special characters
+    search_keywords_filtered = search_keywords_filtered.replace(/[\n\r]/g, ' '); // Remove newline and carriage return characters
+    search_keywords_filtered = search_keywords_filtered.replace(/<[^>]*>/g, ''); // Remove HTML tags
+    search_keywords_filtered = [...new Set(search_keywords_filtered.split(' '))].join(' ');// Remove duplicates using Set
+    return search_keywords_filtered;
+}
+
 async function asyncForEach(array, callback) {
     for (let index = 0; index < array.length; index++) {
         try {
@@ -105,21 +134,29 @@ async function asyncForEach(array, callback) {
         //const documents = await collection.find({ category: { $exists: false } }).toArray();
         const documents = await collection.find({}, {
             projection: {
-                _id: 1, dataId: 1, dataName: 1, dataTask: 1, useCaseText: 1, summary: 1, Category1st: 1, Category2nd: 1, Category3rd: 1,
-                Category1stScore: 1, Category2ndScore: 1, Category3rdScore: 1 // 점수 필드 추가
+                _id: 1, dataId: 1, dataName: 1, dataTask: 1, dataTaskSlug: 1, useCaseText: 1, summary: 1, Category1st: 1, Category2nd: 1, Category3rd: 1,
+                Category1stScore: 1, Category2ndScore: 1, Category3rdScore: 1, categorysl: 1 // 점수 필드 추가
             }
         }).toArray();
         console.log(`Found ${documents.length} documents to categorize.`);
         await asyncForEach(documents, async (doc, index, array) => {
-            const { _id, dataId, dataName, dataTask, useCaseText, summary, Category1st, Category1stScore, Category2nd, Category2ndScore, Category3rd, Category3rdScore } = doc;
-            //console.log('[Category1st]', Category1st, ':', Category1stScore, ' / [Category2nd]', Category2nd, ':', Category2ndScore, ' / [Category3rd]', Category3rd, ':', Category3rdScore)
-            if (isValidCategory(Category1st) && isValidCategory(Category2nd) && isValidCategory(Category3rd) && Category1stScore > 10 && Category2ndScore > 10 && Category3rdScore > 10) {
+            const { _id, dataId, dataName, dataTask, dataTaskSlug, useCaseText, summary, Category1st, Category1stScore, Category2nd, Category2ndScore, Category3rd, Category3rdScore, categorysl } = doc;
+            //console.log('[MongoDB][Category1st]', Category1st, ':', Category1stScore, ' / [Category2nd]', Category2nd, ':', Category2ndScore, ' / [Category3rd]', Category3rd, ':', Category3rdScore)
+            //console.log('[MongoDB][categorysl]', categorysl);
+            if (Category1st.toLowerCase() == categorysl[0] && Category2nd.toLowerCase() == categorysl[1] && Category3rd.toLowerCase() == categorysl[2]
+                && isValidCategory(Category1st) && isValidCategory(Category2nd) && isValidCategory(Category3rd)
+                && Category1stScore > 10 && Category2ndScore > 10 && Category3rdScore > 10) {
                 console.log(`[\x1b[33m${index + 1}\x1b[0m/${array.length}][\x1b[32mSKIPPED\x1b[0m][${dataId}] ${dataName} ${dataTask}\n[useCaseText] ${useCaseText}\n[Categories] ${Category1st}:${Category1stScore}, ${Category2nd}:${Category2ndScore}, ${Category3rd}:${Category3rdScore}\n`);
-                //await sleep(1000); // 1초 딜레이를 추가합니다.
+                //await sleep(1000); // 1초 딜레이를 추가합니다. 
             } else {
                 const categoryScores = await categorizeDataTask(dataTask, useCaseText, summary);
                 if (categoryScores.length > 2) {
                     const category = categoryScores.map(item => item.category).join('.');
+                    const categorysl = get_categorysl(Category1st, Category2nd, Category3rd);
+                    const search_keywords = get_search_keywords(dataName, dataTask, dataTaskSlug, summary, useCaseText, categorysl);
+                    const search_keywordsl = search_keywords.join(' ');
+                    const search_keywords_filtered = get_search_keywords_filtered(search_keywordsl);
+
                     await collection.updateOne(
                         { _id },
                         {
@@ -131,6 +168,14 @@ async function asyncForEach(array, callback) {
                                 Category2ndScore: categoryScores[1].score,
                                 Category3rd: categoryScores[2].category,
                                 Category3rdScore: categoryScores[2].score,
+                                categorys: [
+                                    Category1st,
+                                    Category2nd,
+                                    Category3rd
+                                ],
+                                categorysl: categorysl,
+                                search_keywordsl: search_keywordsl,
+                                search_keywords_filtered: search_keywords_filtered,
                             },
                         }
                     );
