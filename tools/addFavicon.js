@@ -24,6 +24,8 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
             const documents = await collection
                 .find(
                     { $or: [{ favicon: { $exists: false } }, { favicon: '' }] },
+                    //{dataUrl: 'https://www.nokeai.com/'},
+                    //{},
                     { projection: { _id: 1, dataUrl: 1 } } // 필요한 필드만 선택
                 )
                 .toArray();
