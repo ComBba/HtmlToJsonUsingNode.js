@@ -1,10 +1,5 @@
-// addFavicon.js
-const axios = require('axios');
-const jsdom = require('jsdom');
-const { JSDOM } = jsdom;
+// tools/addFavicon.js
 const { MongoClient } = require('mongodb');
-const { URL: Url } = require('url');
-const sharp = require('sharp');
 const { fetchFaviconAsBase64 } = require('../lib/getFavicon.js');
 const path = require('path');
 const dotenv = require('dotenv');
@@ -42,7 +37,7 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
                     await collection.updateOne({ _id }, { $set: { favicon } });
                     console.log(`[\x1b[32mOK\x1b[0m][DOCU] Updated favicon for ${dataUrl}`);
                 } else {
-                    console.log(`[Fail][DOCU] Could not fetch favicon for ${dataUrl}`);
+                    console.log(`[\x1b[31mFail\x1b[0m][DOCU] Could not fetch favicon for ${dataUrl}`);
                 }
                 await new Promise((resolve) => setTimeout(resolve, 1000)); // 1초 지연
             }
