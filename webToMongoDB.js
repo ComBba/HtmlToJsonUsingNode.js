@@ -12,7 +12,6 @@ const { sleep, randomInRange, msToTime, convertToTimestamp, removeDots, shuffle 
 const { fetchFaviconAsBase64 } = require('./lib/getFavicon.js');
 
 const { removeStopwords, eng, kor } = require('stopword');
-const { get } = require('http');
 
 const VIEWPORT_WIDTH = 915;
 const VIEWPORT_HEIGHT = 750;
@@ -55,8 +54,6 @@ function isValidScore(score) {
 
 function isCompletion(text) {
   const regex = /^1: ?([A-Za-z ]+): ?[0-9]{1,3}(, (\d: ?([A-Za-z ]+): ?[0-9]{1,3})){4}$/;
-  //const regex = /^1: ?(Speeches|Images|Data Analysis|Videos|NLP|Chatbots|Frameworks|Education|Health|Financial Services|Logistics|Gaming|Human Resources|CRM|Contents Creation|Automation|Cybersecurity|Social Media|Environment|Smart Cities): ?[0-9]{1,3}(, (\d: ?(Speeches|Images|Data Analysis|Videos|NLP|Chatbots|Frameworks|Education|Health|Financial Services|Logistics|Gaming|Human Resources|CRM|Contents Creation|Automation|Cybersecurity|Social Media|Environment|Smart Cities): ?[0-9]{1,3})){4}$/;
-
   return regex.test(text);
 }
 
@@ -74,7 +71,6 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
       excludedCategories = [];
     }
     attemptCount += 1;
-    //const userContent = `Please select the top 3 from the list below in order of highest relevance to the provided data Task, useCaseText, summary, and respond in the format of '1: {category_name_1: suitability score}, 2: {category_name_2: suitability score}, 3: {category_name_3: suitability score}'. Assign a suitability score from 0 to 100 for each category, with 100 being the most suitable and 0 being the least suitable.\n
     const userContent = `Absolutely select the top 5 from the list below in order of highest relevance to the provided data Task, useCaseText, summary, and Assign a suitability score from 0 to 100 for each category, with 100 being the most suitable and 0 being the least suitable. respond in the format of '1:{category_name_1:suitability score}, 2:{category_name_2:suitability score}, 3:{category_name_3:suitability score}, 4:{category_name_4:suitability score}, 5:{category_name_5:suitability score}'.\n
       A list of valid categories: 'Speeches', 'Images', 'Data Analysis', 'Videos', 'NLP', 'Chatbots', 'Frameworks', 'Education', 'Health', 'Financial Services', 'Logistics', 'Gaming', 'Human Resources', 'CRM', 'Contents Creation', 'Automation', 'Cybersecurity', 'Social Media', 'Environment', 'Smart Cities'\n"Excluded categories" are not valid categories and should never be included in a response.\n`;
     const inputText = `Task:${dataTask}\nuseCaseText:${useCaseText}\nsummary:${summary}\nCategories to be excluded:${excludedCategories.join(', ')}`;
@@ -88,12 +84,8 @@ async function categorizeDataTask(dataTask, useCaseText, summary) {
         sleep(1000);
         continue;
       }
-      //1:Contents Creation:95, 2: Chatbots:90, 3: NLP:85
-      //1:{category_name_1:suitability score}, 2:{category_name_2:suitability score}, 3:{category_name_3:suitability score}
       categoryScores = response.messageContent.split(', ').map(c => {
-        //console.log('[c]', c);
         const [number, category, score] = c.split(':');
-        //console.log('[number]', number, '[category]', category, '[score]', score);
         return { category: removeDots(category), score: parseFloat(score) };
       });
       console.log('[categoryScores]', categoryScores);
@@ -160,12 +152,14 @@ async function extractData($) {
   const result = [];
   const elements = $('div.tasks > li').toArray();
   const shuffledElements = shuffle(elements);
-  for (const element of shuffledElements) {
+  for (let i = 0; i < shuffledElements.length; i++) {
+    const element = shuffledElements[i];
     const el = $(element);
     const dataId = el.attr('data-id');
     const dataName = el.attr('data-name');
     const dataUrl = el.attr('data-url');
 
+    console.log("[", i + 1, "/", shuffledElements.length, "]", "[dataId]", dataId, "[dataName]", dataName, "[dataUrl]", dataUrl);
     // Check if dataId already exists in MongoDB
     const exists = await checkIfExistsInMongoDB(dataId);
     if (exists) {
@@ -303,7 +297,6 @@ async function fetchSiteContent(url) {
       const twitterDescription = document.querySelector('meta[name="twitter:description"]')?.content;
       let body;
       if (url.includes("apps.apple.com")) {
-        //const specificContents = $("body > div.ember-view > main > div.animation-wrapper.is-visible > section:nth-child(4) > div")?.text().replace(/\s\s+/g, ' ').trim();
         body = document.querySelector("body > div.ember-view > main > div.animation-wrapper.is-visible > section:nth-child(4) > div > div > div")?.content;
       } else {
         body = paragraphs.map(p => p.innerText).join('\n');

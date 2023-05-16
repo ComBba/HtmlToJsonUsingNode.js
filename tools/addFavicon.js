@@ -21,13 +21,15 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
             .find(
                 { $or: [{ favicon: { $exists: false } }, { favicon: '' }] },
                 //{dataUrl: 'https://rolebot.streamlit.app/'},
+                //{dataUrl: 'https://www.kmeans.org/'}, TODO: Cloudflare 처리된 사이트들
                 //{},
                 { projection: { _id: 1, dataUrl: 1 } } // 필요한 필드만 선택
             )//.limit(10)
             .toArray();
         console.info(`Found \x1b[36m${documents.length}\x1b[0m documents to update favicon.`);
 
-        for (const doc of documents) {
+        for (let i = 0; i < documents.length; i++) {
+            const doc = documents[i];
             const { _id, dataUrl } = doc;
             const maxRetries = 3;
             let retryCount = 0;
@@ -35,7 +37,7 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 
             while (retryCount < maxRetries && !success) {
                 try {
-                    console.log(`[NOTICE][DOCU] Processing ${dataUrl}`);
+                    console.log("[NOTICE][DOCU][", i + 1, "/", documents.length, "][", retryCount + 1, "/", maxRetries, "] Document processing to add favicon:", dataUrl);
                     const favicon = await fetchFaviconAsBase64(dataUrl);
                     if (favicon) {
                         await collection.updateOne({ _id }, { $set: { favicon } });
