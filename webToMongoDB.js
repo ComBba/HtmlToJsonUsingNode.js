@@ -1,4 +1,4 @@
-//webToJson.js
+// webToMongoDB.js
 const cheerio = require('cheerio');
 const axios = require('axios');
 const fs = require('fs');
@@ -7,7 +7,7 @@ const sharp = require('sharp');
 
 const { getWebsiteContent, createUrlToSummarizeCompletion } = require('./lib/urlToSummarizeWithOpenAI.js');
 const { checkIfExistsInMongoDB, insertIntoMongoDB } = require('./lib/connectMongo.js');
-const { createCompletion } = require('./lib/openaiHelper.js');
+const { categorizeDataTask, createCompletion } = require('./lib/openaiHelper.js');
 const { sleep, randomInRange, msToTime, convertToTimestamp, removeDots, shuffle } = require('./tools/utils.js');
 const { fetchFaviconAsBase64 } = require('./lib/getFavicon.js');
 
@@ -15,16 +15,12 @@ const { removeStopwords, eng, kor } = require('stopword');
 
 const VIEWPORT_WIDTH = 915;
 const VIEWPORT_HEIGHT = 750;
+const BrowserHEADER = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36'
 
-let browser, page;
+let browser;
 
 async function init() {
   browser = await puppeteer.launch({ headless: "new" });
-  page = await browser.newPage();
-  // Set User-Agent to Chrome on PC
-  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.63 Safari/537.36');
-  // 페이지 뷰포트 크기 설정
-  await page.setViewport({ width: VIEWPORT_WIDTH, height: VIEWPORT_HEIGHT });
 }
 
 async function fetchAndSummarize(url) {
@@ -35,89 +31,6 @@ async function fetchAndSummarize(url) {
   } else {
     return { summary: "", screenShot: "" };
   }
-}
-
-function isValidCategory(category) {
-  const validCategories = [
-    'Speeches', 'Images', 'Data Analysis', 'Videos', 'NLP', 'Chatbots', 'Frameworks', 'Education', 'Health', 'Financial Services',
-    'Logistics', 'Gaming', 'Human Resources', 'CRM', 'Contents Creation', 'Automation', 'Cybersecurity', 'Social Media',
-    'Environment', 'Smart Cities'
-  ];
-  return validCategories.includes(category);
-}
-
-function isValidScore(score) {
-  if (score == null || score == undefined || score == NaN || score.length == 0)
-    return false;
-  return score > 10 && score <= 100;
-}
-
-function isCompletion(text) {
-  const regex = /^1: ?([A-Za-z ]+): ?[0-9]{1,3}(, (\d: ?([A-Za-z ]+): ?[0-9]{1,3})){4}$/;
-  return regex.test(text);
-}
-
-async function categorizeDataTask(dataTask, useCaseText, summary) {
-  const systemContent = "You are a helpful assistant that categorizes data.";
-  let excludedCategories = [];
-  let isValid = false;
-  let attemptCount = 0;
-  let response;
-  let categoryScores;
-  let temperature = 0.4;
-  while (!isValid) {
-    if (temperature > 0.9 || temperature < 0.1) {
-      temperature = 0.1;
-      excludedCategories = [];
-    }
-    attemptCount += 1;
-    const userContent = `Absolutely select the top 5 from the list below in order of highest relevance to the provided data Task, useCaseText, summary, and Assign a suitability score from 0 to 100 for each category, with 100 being the most suitable and 0 being the least suitable. respond in the format of '1:{category_name_1:suitability score}, 2:{category_name_2:suitability score}, 3:{category_name_3:suitability score}, 4:{category_name_4:suitability score}, 5:{category_name_5:suitability score}'.\n
-      A list of valid categories: 'Speeches', 'Images', 'Data Analysis', 'Videos', 'NLP', 'Chatbots', 'Frameworks', 'Education', 'Health', 'Financial Services', 'Logistics', 'Gaming', 'Human Resources', 'CRM', 'Contents Creation', 'Automation', 'Cybersecurity', 'Social Media', 'Environment', 'Smart Cities'\n"Excluded categories" are not valid categories and should never be included in a response.\n`;
-    const inputText = `Task:${dataTask}\nuseCaseText:${useCaseText}\nsummary:${summary}\nCategories to be excluded:${excludedCategories.join(', ')}`;
-
-    response = await createCompletion(inputText, systemContent, userContent, temperature);
-    if (response && response.messageContent && response.messageContent.length > 10) {
-      console.log('[messageContent]', response.messageContent);
-      if (!isCompletion(response.messageContent)) {
-        temperature += 0.1;
-        console.log('[Attempt][\x1b[31mregex Fail\x1b[0m] count:', attemptCount, '\ntemperature:', temperature);
-        sleep(1000);
-        continue;
-      }
-      categoryScores = response.messageContent.split(', ').map(c => {
-        const [number, category, score] = c.split(':');
-        return { category: removeDots(category), score: parseFloat(score) };
-      });
-      console.log('[categoryScores]', categoryScores);
-      isValid = categoryScores.every(item => isValidCategory(item.category));
-      const isValidNumber = categoryScores.slice(0, 3).every(item => isValidScore(item.score));
-
-      if (!isValid) {
-        excludedCategories = excludedCategories.concat(
-          categoryScores
-            .filter(c => !isValidCategory(c.category) && c.category.length >= 2) // 길이가 2 이상인 경우에만 필터링합니다.
-            .map(c => c.category) // 각 요소에서 'category' 프로퍼티만 추출합니다.
-        );
-        console.log('[Attempt][Invalid] count:', attemptCount, '\ntemperature:', temperature, '\ncategoryScores:', categoryScores, '\nExcluded categories:', excludedCategories);
-        temperature += 0.1;
-        sleep(1000);
-      } else if (!isValidNumber) {
-        isValid = false;
-        console.log('[Attempt][InvalidNumber] count:', attemptCount, '\ntemperature:', temperature, '\ncategoryScores:', categoryScores, '\nExcluded categories:', excludedCategories);
-        temperature -= 0.1;
-        sleep(1000);
-      } else if (categoryScores.length != 5) {
-        isValid = false;
-        console.log('[Attempt][InvalidCategoryScoresCount] categoryScores.length:', categoryScores.length, '\n count:', attemptCount, '\ntemperature:', temperature, '\ncategoryScores:', categoryScores, '\nExcluded categories:', excludedCategories);
-        sleep(1000);
-      } else {
-        console.log('[Attempt][Success] count:', attemptCount);
-      }
-    } else {
-      console.log('[OpenAI][ERROR] return response.messageContent is empty');
-    }
-  }
-  return categoryScores;
 }
 
 function get_categorysl(Category1st, Category2nd, Category3rd) {
@@ -150,8 +63,9 @@ function get_search_keywords_filtered(search_keywords_filtered) {
 
 async function extractData($) {
   const result = [];
-  const elements = $('div.tasks > li').toArray();
-  const shuffledElements = shuffle(elements);
+  const shuffledElements = $('div.tasks > li').toArray();
+  //const elements = $('div.tasks > li').toArray();
+  //const shuffledElements = shuffle(elements);
   for (let i = 0; i < shuffledElements.length; i++) {
     const element = shuffledElements[i];
     const el = $(element);
@@ -159,13 +73,14 @@ async function extractData($) {
     const dataName = el.attr('data-name');
     const dataUrl = el.attr('data-url');
 
-    console.log("[", i + 1, "/", shuffledElements.length, "]", "[dataId]", dataId, "[dataName]", dataName, "[dataUrl]", dataUrl);
     // Check if dataId already exists in MongoDB
     const exists = await checkIfExistsInMongoDB(dataId);
     if (exists) {
       // Skip this element if the dataId already exists in the database
-      console.log(`[Skip][Exists] dataId ${dataId} : ${dataName}`);
+      console.log("[", i + 1, "/", shuffledElements.length, "][Skip][Exists]", "[dataId]", dataId, "[dataName]", dataName, "[dataUrl]", dataUrl);
       continue;
+    } else {
+      console.log("[", i + 1, "/", shuffledElements.length, "][Start]", "[dataId]", dataId, "[dataName]", dataName, "[dataUrl]", dataUrl);
     }
 
     await sleep(randomInRange(1000, 2000)); // 1~2초 대기
@@ -252,8 +167,11 @@ async function fetchAndConvertHtmlToJson(url, outputFile) {
 }
 
 async function fetchSiteContent(url) {
+  const page = await browser.newPage();
   try {
     console.log("\n[fetchSiteContent] url:", url);
+    await page.setUserAgent(BrowserHEADER); // Set User-Agent to Chrome on PC
+    await page.setViewport({ width: VIEWPORT_WIDTH, height: VIEWPORT_HEIGHT }); // 페이지 뷰포트 크기 설정
     const response = await page.goto(url, { waitUntil: 'networkidle2' });
     console.log("5초 대기 중.....")
     await page.waitForTimeout(5000); // 5초 대기
@@ -315,11 +233,13 @@ async function fetchSiteContent(url) {
   } catch (error) {
     console.error('Error fetching site content:', error);
     return '';
+  } finally {
+    await page.goto('about:blank');
+    await page.close();
   }
 }
 
 async function closeBrowser() {
-  await page.goto('about:blank');
   await browser.close();
 }
 
