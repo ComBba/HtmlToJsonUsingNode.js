@@ -21,7 +21,7 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
             .find(
                 { $or: [{ favicon: { $exists: false } }, { favicon: '' }] },
                 //{dataUrl: 'https://rolebot.streamlit.app/'},
-                //{dataUrl: 'https://www.kmeans.org/'}, TODO: Cloudflare 처리된 사이트들
+                //{dataUrl: 'https://www.opentable.com/blog/chatgpt/'}, //TODO: Cloudflare 처리된 사이트들
                 //{},
                 { projection: { _id: 1, dataUrl: 1 } } // 필요한 필드만 선택
             )//.limit(10)
