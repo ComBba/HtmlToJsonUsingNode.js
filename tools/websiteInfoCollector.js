@@ -18,27 +18,6 @@ const configuration = new Configuration({
 // Create OpenAI API instance
 const openai = new OpenAIApi(configuration);
 
-async function googleLogin(page) {
-    // Navigate to the login page
-    await page.goto('https://accounts.google.com/AccountChooser?service=mail&continue=https://mail.google.com/mail/');
-
-    // Enter your email and password
-    await page.type('input[type="email"]', 'sejun@ddengle.com');
-    console.log("type('input[type=\"email\"]', 'XXXXXXXXXXXXXXXXX');")
-    await page.click('#identifierNext');
-    console.log("click('#identifierNext');")
-    await page.waitForNavigation();
-    console.log("waitForNavigation();")
-    await page.waitForSelector("#password > div.aCsJod.oJeWuf > div > div.Xb9hP > input");  // Adjust this wait time if needed
-    console.log("waitForSelector('#password > div.aCsJod.oJeWuf > div > div.Xb9hP > input');")
-    await page.type('input[type="password"]', 'Psop671k!@');
-    console.log("type('input[type=\"password\"]', 'XXXXXXXXXXXXXXXXX');")
-    await page.click('#passwordNext > div > button');
-    console.log("click('#passwordNext > div > button');")
-    await page.waitForNavigation();
-    console.log("waitForNavigation();")
-}
-
 async function checkUniqueValue(field, value) {
     const uri = process.env.MONGODB_CONNECTION_URI; // Replace with your MongoDB connection URI
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -66,65 +45,6 @@ async function checkUniqueValue(field, value) {
 
     await client.close();
     return uniqueValue;
-}
-
-async function checkUniqueValue(field, value) {
-    const uri = process.env.MONGODB_CONNECTION_URI; // Replace with your MongoDB connection URI
-    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
-    await client.connect();
-    const db = client.db(process.env.MONGODB_DATABASE_NAME);
-    const collection = db.collection(process.env.MONGODB_COLLECTION_NAME);
-
-    // Get all documents with only the required field
-    const docs = await collection.find({}, { projection: { [field]: 1, _id: 0 } }).toArray();
-
-    // Extract the values of the field from the documents
-    const values = docs.map(doc => doc[field]);
-
-    let index = 1;
-    let uniqueValue = value;
-    while (values.includes(uniqueValue)) {
-        uniqueValue = `${value}-${index++}`;
-    }
-
-    await client.close();
-    return uniqueValue;
-}
-
-async function getAiLaunchDateText(siteName) {
-    try {
-        const browser = await puppeteer.launch({ headless: false });
-        const context = await browser.createIncognitoBrowserContext();
-        const page = await context.newPage();
-        await page.goto(`https://twitter.com/search?q=${siteName}&src=typed_query&f=live`, { waitUntil: 'networkidle2' });
-
-        await googleLogin(page);  // Add this line
-        // Wait for the tweets to load
-        await page.waitForSelector('article');
-
-        // Get the dates of the latest 10 tweets
-        const tweetDates = await page.evaluate(() => {
-            const articles = document.querySelectorAll('article');
-            return Array.from(articles).slice(0, 10).map(article => {
-                const time = article.querySelector('time');
-                return time ? new Date(time.getAttribute('datetime')) : new Date();
-            });
-        });
-
-        await browser.close();
-
-        if (tweetDates.length > 0) {
-            console.log(tweetDates);
-            // Assuming the launch date is the date of the earliest tweet about the site
-            return new Date(Math.min(...tweetDates)).toLocaleDateString();
-        }
-    } catch (error) {
-        // Log any errors that occur during the tweet search
-        console.error(error);
-    }
-
-    // If no tweets are found, default to today's date
-    return new Date().toLocaleDateString();
 }
 
 async function getNewDataId() {
@@ -244,7 +164,7 @@ async function getFetchAndExtractWebsiteContent(url) {
         const useCaseText = extractedData.useCaseText;
 
         // Get the AI launch date text for the site name and convert it to a timestamp
-        const aiLaunchDateText = await getAiLaunchDateText(siteName); //new Date().toLocaleDateString(); 
+        const aiLaunchDateText = new Date().toLocaleDateString(); 
         const aiLaunchDateTimestamp = new Date(aiLaunchDateText).getTime();
 
         // Create an object containing all the extracted data
