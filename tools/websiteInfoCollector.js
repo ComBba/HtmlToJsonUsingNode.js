@@ -35,11 +35,8 @@ async function checkUniqueValue(field, value) {
     let uniqueValue = value;
     while (values.includes(uniqueValue)) {
         const uniqueValueArray = uniqueValue.split('/');
-        console.log('[uniqueValueArray]', uniqueValueArray);
         const removeLastCharactor = uniqueValueArray.pop();
-        console.log('[removeLastCharactor]', removeLastCharactor);
         const uniqueValueArrayWithOutLastCharactor = uniqueValueArray.join('/');
-        console.log('[uniqueValueArrayWithOutLastCharactor]', uniqueValueArrayWithOutLastCharactor);
         uniqueValue = `${uniqueValueArrayWithOutLastCharactor}-${index++}/${removeLastCharactor}`;
     }
 
@@ -164,7 +161,7 @@ async function getFetchAndExtractWebsiteContent(url) {
         const useCaseText = extractedData.useCaseText;
 
         // Get the AI launch date text for the site name and convert it to a timestamp
-        const aiLaunchDateText = new Date().toLocaleDateString(); 
+        const aiLaunchDateText = new Date().toLocaleDateString();
         const aiLaunchDateTimestamp = new Date(aiLaunchDateText).getTime();
 
         // Create an object containing all the extracted data
