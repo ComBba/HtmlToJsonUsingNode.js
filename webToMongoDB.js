@@ -118,6 +118,10 @@ async function extractData($) {
         Category2ndScore: categoryScores[1].score,
         Category3rd: categoryScores[2].category,
         Category3rdScore: categoryScores[2].score,
+        Category4th: categoryScores[3].category,
+        Category4thScore: categoryScores[3].score,
+        Category5th: categoryScores[4].category,
+        Category5thScore: categoryScores[4].score,
         favicon: summary.favicon,
         categorys: [
           Category1st,
