@@ -84,11 +84,11 @@ async function extractDataUsingAI(text) {
                 },
                 {
                     role: "user",
-                    content: `Your assignment is to discern the "site name", a "task" consisting of no more than 5 words, and a "use case text" of under 100 characters from the given text. Your response should be in the format: '{\"siteName\":\"Site Name\",\"task\":\"Task\",\"useCaseText\":\"Use Case Text\"}'. Below, you'll find the text extracted from the website's content, focusing on the main purpose and features of the site. Exclude any copyright information, contact details, and unrelated external website links: ${text}.`
+                    content: `Your assignment is to discern the 'site name', excluding any domain extensions or extra words, a 'task' that represents the main service or function of the website, described in no more than 5 words, and should be a general description that could apply to similar sites. Lastly, provide a 'use case' that is a descriptive sentence under 100 characters, explaining how a typical user would use the site or what problem the site solves for its users. Your response should be in the format: '{\"siteName\":\"Site Name\",\"task\":\"Task\",\"useCaseText\":\"Use Case\"}'. Below, you'll find the text extracted from the website's content, focusing on the main purpose and features of the site. Exclude any copyright information, contact details, and unrelated external website links: ${text}.`
                 },
             ],
             // Set the temperature and max tokens for the API response
-            temperature: 0.1,
+            temperature: 0.5,
             max_tokens: 2048,
         });
 
@@ -185,7 +185,7 @@ async function getFetchAndExtractWebsiteContent(url) {
 
 (async function main() {
     //const finalData = await getFetchAndExtractWebsiteContent('https://www.chora.cc/'); // call the function with your URL
-    const finalData = await getFetchAndExtractWebsiteContent("https://voyaj.ai/"); // call the function with your URL
+    const finalData = await getFetchAndExtractWebsiteContent("https://www.wizdom.ai/"); // call the function with your URL
     // Log the extracted data and return it
     console.log('\n[Website Info Collector] Data:');
     console.dir(finalData);
