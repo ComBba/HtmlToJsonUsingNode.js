@@ -29,7 +29,7 @@ async function fetchAndSummarize(url) {
     const summaryResult = await createUrlToSummarizeCompletion(content.contents);
     return { summary: summaryResult.summary, screenShot: content.imageData, favicon: content.faviconData };
   } else {
-    return { summary: "", screenShot: "" };
+    return { summary: "", screenShot: "", favicon: "" };
   }
 }
 
@@ -201,6 +201,8 @@ async function fetchSiteContent(url) {
     console.log('[compressedBuffer]', screenshotBuffer.length, '=>', compressedBuffer.length);
 
     const faviconData = await fetchFaviconAsBase64(url);// Use fetchFaviconAsBase64 function here
+    //console.log('[faviconData]', faviconData);
+    
     if (faviconData) {
       console.log(`[\x1b[32mOK\x1b[0m][DOCU] Updated favicon for ${url}`);
     } else {

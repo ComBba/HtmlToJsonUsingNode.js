@@ -64,6 +64,7 @@ app.get('/data', async (req, res) => {
     const data = await collection.find(searchQuery ? query : {}, { projection: { dataId: 1, dataName: 1, dataTask: 1, dataUrl: 1, summary: 1, useCaseText: 1, favicon: 1, Category1st: 1, Category1stScore: 1, Category2nd: 1, Category2ndScore: 1, Category3rd: 1, Category3rdScore: 1 } }) // 수정: 카테고리와 점수 필드 추가
       .skip((page - 1) * itemsPerPage)
       .limit(itemsPerPage)
+      .sort({ _id: -1 })
       .toArray();
     console.log('Data fetched successfully');
 
