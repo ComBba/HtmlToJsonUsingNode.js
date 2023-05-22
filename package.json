@@ -22,7 +22,7 @@
     "mongodb": "^5.3.0",
     "natural": "^6.2.0",
     "node-cache": "^5.1.2",
-    "node-fetch": "^3.3.1",
+    "node-fetch": "^2.6.11",
     "openai": "^3.2.1",
     "puppeteer": "^19.11.0",
     "qs": "^6.11.1",
