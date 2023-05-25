@@ -93,7 +93,7 @@ async function extractData($) {
       const categoryScores = await categorizeDataTask(dataTask, useCaseText, summary);
       const category = categoryScores.map(item => item.category).join('.');
       const [Category1st, Category2nd, Category3rd] = category.split('.');
-      console.log("[category]", category, "\n", "[Category1st]", Category1st, "\n", "[Category2nd]", Category2nd, "\n", "[Category3rd]", Category3rd);
+      //console.log("[category]", category, "\n", "[Category1st]", Category1st, "\n", "[Category2nd]", Category2nd, "\n", "[Category3rd]", Category3rd);
       const categorysl = get_categorysl(Category1st, Category2nd, Category3rd);
       const search_keywords = get_search_keywords(dataName, dataTask, el.attr('data-task_slug'), summary.summary, useCaseText, categorysl);
       const search_keywordsl = search_keywords.join(' ');
