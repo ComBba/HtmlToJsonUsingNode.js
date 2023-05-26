@@ -5,9 +5,9 @@ const fs = require('fs');
 const puppeteer = require('puppeteer');
 const sharp = require('sharp');
 
-const { getWebsiteContent, createUrlToSummarizeCompletion } = require('./lib/urlToSummarizeWithOpenAI.js');
+const { createUrlToSummarizeCompletion } = require('./lib/urlToSummarizeWithOpenAI.js');
 const { checkIfExistsInMongoDB, insertIntoMongoDB } = require('./lib/connectMongo.js');
-const { categorizeDataTask, createCompletion } = require('./lib/openaiHelper.js');
+const { categorizeDataTask } = require('./lib/openaiHelper.js');
 const { sleep, randomInRange, msToTime, convertToTimestamp, removeDots, shuffle } = require('./tools/utils.js');
 const { fetchFaviconAsBase64 } = require('./lib/getFavicon.js');
 
@@ -20,7 +20,17 @@ const BrowserHEADER = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537
 let browser;
 
 async function init() {
-  browser = await puppeteer.launch({ headless: "new" });
+  try {
+    if (browser && typeof browser.version === 'function') {
+      const ver = await browser.version(); // this will throw if the browser is not usable
+      console.log(`Browser version: ${ver}`);
+    } else {
+      browser = await puppeteer.launch({ headless: false });
+    }
+  } catch (err) {
+    console.error(`An error occurred while initializing the browser: ${err}`);
+    browser = await puppeteer.launch({ headless: false });
+  }
 }
 
 async function fetchAndSummarize(url) {
@@ -66,77 +76,81 @@ async function extractData($) {
   const shuffledElements = $('div.tasks > li').toArray();
   //const elements = $('div.tasks > li').toArray();
   //const shuffledElements = shuffle(elements);
-  for (let i = 0; i < shuffledElements.length; i++) {
-    const element = shuffledElements[i];
-    const el = $(element);
-    const dataId = el.attr('data-id');
-    const dataName = el.attr('data-name');
-    const dataUrl = el.attr('data-url');
+  try {
+    for (let i = 0; i < shuffledElements.length; i++) {
+      const element = shuffledElements[i];
+      const el = $(element);
+      const dataId = el.attr('data-id');
+      const dataName = el.attr('data-name');
+      const dataUrl = el.attr('data-url');
 
-    // Check if dataId already exists in MongoDB
-    const exists = await checkIfExistsInMongoDB(dataId);
-    if (exists) {
-      // Skip this element if the dataId already exists in the database
-      console.log("[", i + 1, "/", shuffledElements.length, "][Skip][Exists]", "[dataId]", dataId, "[dataName]", dataName, "[dataUrl]", dataUrl);
-      continue;
-    } else {
-      console.log("[", i + 1, "/", shuffledElements.length, "][Start]", "[dataId]", dataId, "[dataName]", dataName, "[dataUrl]", dataUrl);
-    }
-
-    await sleep(randomInRange(1000, 2000)); // 1~2초 대기
-
-    const summary = await fetchAndSummarize(dataUrl);
-
-    if (summary.summary && summary.summary.length > 0) {
-      const dataTask = el.attr('data-task');
-      const useCaseText = el.find('a.use_case').text().trim();
-      const categoryScores = await categorizeDataTask(dataTask, useCaseText, summary);
-      const category = categoryScores.map(item => item.category).join('.');
-      const [Category1st, Category2nd, Category3rd] = category.split('.');
-      //console.log("[category]", category, "\n", "[Category1st]", Category1st, "\n", "[Category2nd]", Category2nd, "\n", "[Category3rd]", Category3rd);
-      const categorysl = get_categorysl(Category1st, Category2nd, Category3rd);
-      const search_keywords = get_search_keywords(dataName, dataTask, el.attr('data-task_slug'), summary.summary, useCaseText, categorysl);
-      const search_keywordsl = search_keywords.join(' ');
-      const search_keywords_filtered = get_search_keywords_filtered(search_keywordsl);
-      const data = {
-        dataId: dataId,
-        dataName: dataName,
-        dataTask: dataTask,
-        dataUrl: dataUrl,
-        dataTaskSlug: el.attr('data-task_slug'),
-        aiLinkHref: el.find('a.ai_link.new_tab.c_event').attr('href'),
-        useCaseText: useCaseText,
-        aiLaunchDateText: el.find('a.ai_launch_date').text().trim(),
-        aiLaunchDateTimestamp: convertToTimestamp(el.find('a.ai_launch_date').text().trim()), // TimeStamp로 추가
-        imgSrc: el.find('img').attr('src').replace(/\?height=207/, ''),
-        summary: summary.summary,
-        screenShot: summary.screenShot,
-        category: category,
-        Category1st: categoryScores[0].category,
-        Category1stScore: categoryScores[0].score,
-        Category2nd: categoryScores[1].category,
-        Category2ndScore: categoryScores[1].score,
-        Category3rd: categoryScores[2].category,
-        Category3rdScore: categoryScores[2].score,
-        Category4th: categoryScores[3].category,
-        Category4thScore: categoryScores[3].score,
-        Category5th: categoryScores[4].category,
-        Category5thScore: categoryScores[4].score,
-        favicon: summary.favicon,
-        categorys: [
-          Category1st,
-          Category2nd,
-          Category3rd
-        ],
-        categorysl: categorysl,
-        search_keywordsl: search_keywordsl,
-        search_keywords_filtered: search_keywords_filtered,
-      };
-      if (result.length < 20) {
-        result.push(data);
+      // Check if dataId already exists in MongoDB
+      const exists = await checkIfExistsInMongoDB(dataId);
+      if (exists) {
+        // Skip this element if the dataId already exists in the database
+        console.log("[", i + 1, "/", shuffledElements.length, "][Skip][Exists]", "[dataId]", dataId, "[dataName]", dataName, "[dataUrl]", dataUrl);
+        continue;
+      } else {
+        console.log("[", i + 1, "/", shuffledElements.length, "][Start]", "[dataId]", dataId, "[dataName]", dataName, "[dataUrl]", dataUrl);
       }
-      insertIntoMongoDB(data);
+
+      await sleep(randomInRange(1000, 2000)); // 1~2초 대기
+
+      const summary = await fetchAndSummarize(dataUrl);
+
+      if (summary.summary && summary.summary.length > 0) {
+        const dataTask = el.attr('data-task');
+        const useCaseText = el.find('a.use_case').text().trim();
+        const categoryScores = await categorizeDataTask(dataTask, useCaseText, summary);
+        const category = categoryScores.map(item => item.category).join('.');
+        const [Category1st, Category2nd, Category3rd] = category.split('.');
+        //console.log("[category]", category, "\n", "[Category1st]", Category1st, "\n", "[Category2nd]", Category2nd, "\n", "[Category3rd]", Category3rd);
+        const categorysl = get_categorysl(Category1st, Category2nd, Category3rd);
+        const search_keywords = get_search_keywords(dataName, dataTask, el.attr('data-task_slug'), summary.summary, useCaseText, categorysl);
+        const search_keywordsl = search_keywords.join(' ');
+        const search_keywords_filtered = get_search_keywords_filtered(search_keywordsl);
+        const data = {
+          dataId: dataId,
+          dataName: dataName,
+          dataTask: dataTask,
+          dataUrl: dataUrl,
+          dataTaskSlug: el.attr('data-task_slug'),
+          aiLinkHref: el.find('a.ai_link.new_tab.c_event').attr('href'),
+          useCaseText: useCaseText,
+          aiLaunchDateText: el.find('a.ai_launch_date').text().trim(),
+          aiLaunchDateTimestamp: convertToTimestamp(el.find('a.ai_launch_date').text().trim()), // TimeStamp로 추가
+          imgSrc: el.find('img').attr('src').replace(/\?height=207/, ''),
+          summary: summary.summary,
+          screenShot: summary.screenShot,
+          category: category,
+          Category1st: categoryScores[0].category,
+          Category1stScore: categoryScores[0].score,
+          Category2nd: categoryScores[1].category,
+          Category2ndScore: categoryScores[1].score,
+          Category3rd: categoryScores[2].category,
+          Category3rdScore: categoryScores[2].score,
+          Category4th: categoryScores[3].category,
+          Category4thScore: categoryScores[3].score,
+          Category5th: categoryScores[4].category,
+          Category5thScore: categoryScores[4].score,
+          favicon: summary.favicon,
+          categorys: [
+            Category1st,
+            Category2nd,
+            Category3rd
+          ],
+          categorysl: categorysl,
+          search_keywordsl: search_keywordsl,
+          search_keywords_filtered: search_keywords_filtered,
+        };
+        if (result.length < 20) {
+          result.push(data);
+        }
+        insertIntoMongoDB(data);
+      }
     }
+  } catch (error) {
+    console.log('[Error in extractData]', error);
   }
   return result;
 }
@@ -171,14 +185,23 @@ async function fetchAndConvertHtmlToJson(url, outputFile) {
 }
 
 async function fetchSiteContent(url) {
+  await init();
   const page = await browser.newPage();
+  page.on('dialog', async (dialog) => {
+    console.log('[Accept Dialog]', `Dialog message: ${dialog.message()}`);
+    await dialog.accept();
+  });
+
   try {
     console.log("\n[fetchSiteContent] url:", url);
     await page.setUserAgent(BrowserHEADER); // Set User-Agent to Chrome on PC
     await page.setViewport({ width: VIEWPORT_WIDTH, height: VIEWPORT_HEIGHT }); // 페이지 뷰포트 크기 설정
     const response = await page.goto(url, { waitUntil: 'networkidle2' });
-    console.log("5초 대기 중.....")
-    await page.waitForTimeout(5000); // 5초 대기
+    for (i = 10; i > 0; i--) {
+      await page.waitForTimeout(1 * 1000); // 1초 대기
+      console.log(i, "초...");
+    }
+
 
     if (response?.status() === 404 || response?.status() === 500) {
       console.error(`Error: ${response.status()} occurred while fetching the content from ${url}`);
@@ -200,9 +223,9 @@ async function fetchSiteContent(url) {
       .toBuffer();
     console.log('[compressedBuffer]', screenshotBuffer.length, '=>', compressedBuffer.length);
 
-    const faviconData = await fetchFaviconAsBase64(url);// Use fetchFaviconAsBase64 function here
+    const faviconData = await fetchFaviconAsBase64(url, page);// Use fetchFaviconAsBase64 function here
     //console.log('[faviconData]', faviconData);
-    
+
     if (faviconData) {
       console.log(`[\x1b[32mOK\x1b[0m][DOCU] Updated favicon for ${url}`);
     } else {

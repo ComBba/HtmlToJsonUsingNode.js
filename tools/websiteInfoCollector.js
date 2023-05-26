@@ -6,6 +6,7 @@ const path = require('path');
 const dotenv = require('dotenv');
 const { Configuration, OpenAIApi } = require('openai');
 const MongoClient = require('mongodb').MongoClient;
+const { sleep } = require('./utils.js');
 
 const envPath = path.join(__dirname, '..', '.env.local');
 dotenv.config({ path: envPath });
@@ -69,6 +70,7 @@ async function getNewDataId() {
     }
 }
 
+let cntRetry = 0;
 // An asynchronous function that extracts specific information from website content using OpenAI API
 async function extractDataUsingAI(text) {
     try {
@@ -127,12 +129,18 @@ async function extractDataUsingAI(text) {
     } catch (error) {
         // Log an error message to the console if there was an error using the OpenAI API
         console.error('Error using OpenAI API:', error.response == undefined ? error : error.response);
+        await sleep(30 * 1000); // 30초 대기
+        if (cntRetry > 10) {
+            cntRetry = 0;
+            return {
+                siteName: '',
+                task: '',
+                useCaseText: ''
+            };
+        }
+        cntRetry += 1;
+        return await extractDataUsingAI(text);
         // Return empty strings for the extracted data
-        return {
-            siteName: '',
-            task: '',
-            useCaseText: ''
-        };
     }
 }
 
