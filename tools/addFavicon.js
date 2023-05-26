@@ -69,9 +69,14 @@ async function init() {
                     console.log("[NOTICE][DOCU][", i + 1, "/", documents.length, "][", retryCount + 1, "/", maxRetries, "] Document processing to add favicon:", dataUrl);
                     const response = await page.goto(dataUrl, { waitUntil: 'networkidle2' });
                     for (cntTimeout = 10; cntTimeout > 0; cntTimeout--) {
+                        if (response && (response.status() === 404 || response.status() === 500)) {
+                            console.error(`Error: ${response.status()} occurred while fetching the content from ${url}`);
+                            continue;
+                        }
                         await page.waitForTimeout(1 * 1000); // 1초 대기
                         console.log(cntTimeout, "초...");
                     }
+
                     const favicon = await fetchFaviconAsBase64(dataUrl, page);
                     if (favicon) {
                         await collection.updateOne({ _id }, { $set: { favicon } });

@@ -4,6 +4,7 @@ const axios = require('axios');
 const fs = require('fs');
 const puppeteer = require('puppeteer');
 const sharp = require('sharp');
+const url = require('url');
 
 const { createUrlToSummarizeCompletion } = require('./lib/urlToSummarizeWithOpenAI.js');
 const { checkIfExistsInMongoDB, insertIntoMongoDB } = require('./lib/connectMongo.js');
@@ -30,6 +31,16 @@ async function init() {
   } catch (err) {
     console.error(`An error occurred while initializing the browser: ${err}`);
     browser = await puppeteer.launch({ headless: false });
+  }
+}
+
+function isValidUrl(string) {
+  try {
+    new url.URL(string);
+    return true;
+  } catch (e) {
+    console.error('Error in isValidUrl:', e);
+    return false;
   }
 }
 
@@ -196,16 +207,47 @@ async function fetchSiteContent(url) {
     console.log("\n[fetchSiteContent] url:", url);
     await page.setUserAgent(BrowserHEADER); // Set User-Agent to Chrome on PC
     await page.setViewport({ width: VIEWPORT_WIDTH, height: VIEWPORT_HEIGHT }); // 페이지 뷰포트 크기 설정
-    const response = await page.goto(url, { waitUntil: 'networkidle2' });
-    for (i = 10; i > 0; i--) {
-      await page.waitForTimeout(1 * 1000); // 1초 대기
-      console.log(i, "초...");
+
+    let validUrl = isValidUrl(url);
+    console.log("[validUrl]", validUrl);
+    if (!validUrl) {
+      // URL이 유효하지 않으면 https를 추가해서 다시 시도
+      validUrl = isValidUrl('https://' + url);
+      if (!validUrl) {
+        // https로도 실패하면 http를 추가해서 다시 시도
+        validUrl = isValidUrl('http://' + url);
+      } else {
+        url = 'https://' + url;
+        //console.log("[url]", url, "[validUrl]", validUrl);
+      }
     }
 
+    if (validUrl) {
+      const response = await page.goto(url, { waitUntil: 'networkidle2' });
+      //const headers = response.headers();
+      //console.log('Content-Length:', headers['content-length']);
+      for (i = 10; i > 0; i--) {
+        if (response && response.status() === 500) {
+          await page.waitForTimeout(1 * 1000); // 1초 대기
+          console.error(`Error: ${response.status()} occurred while fetching the content from ${url}`);
+          return '';
+        } else if (response && response.status() === 404) {
+          await page.waitForTimeout(1 * 1000); // 1초 대기
+          const bodyHandle = await page.$('body');
+          const bodyText = await page.evaluate(body => body.innerText, bodyHandle);
 
-    if (response?.status() === 404 || response?.status() === 500) {
-      console.error(`Error: ${response.status()} occurred while fetching the content from ${url}`);
-      return '';
+          await bodyHandle.dispose();
+
+          if (bodyText.includes('404') && bodyText.includes('not found')) {
+            console.error(`Error: ${response.status()} occurred while fetching the content from ${url}`);
+            return '';
+          }
+        }
+        await page.waitForTimeout(1 * 1000); // 1초 대기
+        console.log(i, "초...");
+      }
+    } else {
+      console.error('Invalid URL:', url);
     }
 
     const screenshotBuffer = await page.screenshot({
