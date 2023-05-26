@@ -238,7 +238,7 @@ async function fetchSiteContent(url) {
 
           await bodyHandle.dispose();
 
-          if (bodyText.includes('404') && bodyText.includes('not found')) {
+          if (bodyText.includes('404') && (bodyText.includes('not found') || bodyText.includes('Not found') || bodyText.includes('error') || bodyText.includes('Error'))) {
             console.error(`Error: ${response.status()} occurred while fetching the content from ${url}`);
             return '';
           }
