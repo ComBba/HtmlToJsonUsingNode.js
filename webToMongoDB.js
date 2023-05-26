@@ -26,11 +26,17 @@ async function init() {
       const ver = await browser.version(); // this will throw if the browser is not usable
       console.log(`Browser version: ${ver}`);
     } else {
-      browser = await puppeteer.launch({ headless: false });
+      browser = await puppeteer.launch({
+        headless: false, // Start the browser in non-headless mode
+        args: ['--lang=en-US,en'] // Set the browser language to English
+      });
     }
   } catch (err) {
     console.error(`An error occurred while initializing the browser: ${err}`);
-    browser = await puppeteer.launch({ headless: false });
+    browser = await puppeteer.launch({
+      headless: false, // Start the browser in non-headless mode
+      args: ['--lang=en-US,en'] // Set the browser language to English
+    });
   }
 }
 
@@ -207,6 +213,9 @@ async function fetchSiteContent(url) {
     console.log("\n[fetchSiteContent] url:", url);
     await page.setUserAgent(BrowserHEADER); // Set User-Agent to Chrome on PC
     await page.setViewport({ width: VIEWPORT_WIDTH, height: VIEWPORT_HEIGHT }); // 페이지 뷰포트 크기 설정
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'en'
+    });
 
     let validUrl = isValidUrl(url);
     console.log("[validUrl]", validUrl);
@@ -238,7 +247,13 @@ async function fetchSiteContent(url) {
 
           await bodyHandle.dispose();
 
-          if (bodyText.includes('404') && (bodyText.includes('not found') || bodyText.includes('Not found') || bodyText.includes('error') || bodyText.includes('Error'))) {
+          if (bodyText.includes('404') && (
+            bodyText.includes('not found') ||
+            bodyText.includes('Not found') ||
+            bodyText.includes('error') ||
+            bodyText.includes('Error') ||
+            bodyText.includes('could not')
+          )) {
             console.error(`Error: ${response.status()} occurred while fetching the content from ${url}`);
             return '';
           }
