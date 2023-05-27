@@ -1,6 +1,5 @@
 // webToMongoDB.js
 const cheerio = require('cheerio');
-const axios = require('axios');
 const fs = require('fs');
 const puppeteer = require('puppeteer');
 const sharp = require('sharp');
@@ -100,70 +99,85 @@ async function extractData($) {
       const dataId = el.attr('data-id');
       const dataName = el.attr('data-name');
       const dataUrl = el.attr('data-url');
-
-      // Check if dataId already exists in MongoDB
-      const exists = await checkIfExistsInMongoDB(dataId);
-      if (exists) {
-        // Skip this element if the dataId already exists in the database
-        console.log("[", i + 1, "/", shuffledElements.length, "][Skip][Exists]", "[dataId]", dataId, "[dataName]", dataName, "[dataUrl]", dataUrl);
-        continue;
-      } else {
-        console.log("[", i + 1, "/", shuffledElements.length, "][Start]", "[dataId]", dataId, "[dataName]", dataName, "[dataUrl]", dataUrl);
-      }
-
-      await sleep(randomInRange(1000, 2000)); // 1~2초 대기
-
-      const summary = await fetchAndSummarize(dataUrl);
-
-      if (summary.summary && summary.summary.length > 0) {
-        const dataTask = el.attr('data-task');
-        const useCaseText = el.find('a.use_case').text().trim();
-        const categoryScores = await categorizeDataTask(dataTask, useCaseText, summary);
-        const category = categoryScores.map(item => item.category).join('.');
-        const [Category1st, Category2nd, Category3rd] = category.split('.');
-        //console.log("[category]", category, "\n", "[Category1st]", Category1st, "\n", "[Category2nd]", Category2nd, "\n", "[Category3rd]", Category3rd);
-        const categorysl = get_categorysl(Category1st, Category2nd, Category3rd);
-        const search_keywords = get_search_keywords(dataName, dataTask, el.attr('data-task_slug'), summary.summary, useCaseText, categorysl);
-        const search_keywordsl = search_keywords.join(' ');
-        const search_keywords_filtered = get_search_keywords_filtered(search_keywordsl);
-        const data = {
-          dataId: dataId,
-          dataName: dataName,
-          dataTask: dataTask,
-          dataUrl: dataUrl,
-          dataTaskSlug: el.attr('data-task_slug'),
-          aiLinkHref: el.find('a.ai_link.new_tab.c_event').attr('href'),
-          useCaseText: useCaseText,
-          aiLaunchDateText: el.find('a.ai_launch_date').text().trim(),
-          aiLaunchDateTimestamp: convertToTimestamp(el.find('a.ai_launch_date').text().trim()), // TimeStamp로 추가
-          imgSrc: el.find('img').attr('src').replace(/\?height=207/, ''),
-          summary: summary.summary,
-          screenShot: summary.screenShot,
-          category: category,
-          Category1st: categoryScores[0].category,
-          Category1stScore: categoryScores[0].score,
-          Category2nd: categoryScores[1].category,
-          Category2ndScore: categoryScores[1].score,
-          Category3rd: categoryScores[2].category,
-          Category3rdScore: categoryScores[2].score,
-          Category4th: categoryScores[3].category,
-          Category4thScore: categoryScores[3].score,
-          Category5th: categoryScores[4].category,
-          Category5thScore: categoryScores[4].score,
-          favicon: summary.favicon,
-          categorys: [
-            Category1st,
-            Category2nd,
-            Category3rd
-          ],
-          categorysl: categorysl,
-          search_keywordsl: search_keywordsl,
-          search_keywords_filtered: search_keywords_filtered,
-        };
-        if (result.length < 20) {
-          result.push(data);
+      let validUrl = isValidUrl(dataUrl);
+      console.log("[validUrl]", validUrl);
+      if (!validUrl) {
+        // URL이 유효하지 않으면 https를 추가해서 다시 시도
+        validUrl = isValidUrl('https://' + dataUrl);
+        if (!validUrl) {
+          // https로도 실패하면 http를 추가해서 다시 시도
+          validUrl = isValidUrl('http://' + dataUrl);
+        } else {
+          dataUrl = 'https://' + dataUrl;
         }
-        insertIntoMongoDB(data);
+      }
+      if (validUrl) {
+        // Check if dataId already exists in MongoDB
+        const exists = await checkIfExistsInMongoDB(dataId);
+        if (exists) {
+          // Skip this element if the dataId already exists in the database
+          console.log("[", i + 1, "/", shuffledElements.length, "][Skip][Exists]", "[dataId]", dataId, "[dataName]", dataName, "[dataUrl]", dataUrl);
+          continue;
+        } else {
+          console.log("[", i + 1, "/", shuffledElements.length, "][Start]", "[dataId]", dataId, "[dataName]", dataName, "[dataUrl]", dataUrl);
+        }
+
+        await sleep(randomInRange(1000, 2000)); // 1~2초 대기
+
+        const summary = await fetchAndSummarize(dataUrl);
+
+        if (summary.summary && summary.summary.length > 0) {
+          const dataTask = el.attr('data-task');
+          const useCaseText = el.find('a.use_case').text().trim();
+          const categoryScores = await categorizeDataTask(dataTask, useCaseText, summary);
+          const category = categoryScores.map(item => item.category).join('.');
+          const [Category1st, Category2nd, Category3rd] = category.split('.');
+          //console.log("[category]", category, "\n", "[Category1st]", Category1st, "\n", "[Category2nd]", Category2nd, "\n", "[Category3rd]", Category3rd);
+          const categorysl = get_categorysl(Category1st, Category2nd, Category3rd);
+          const search_keywords = get_search_keywords(dataName, dataTask, el.attr('data-task_slug'), summary.summary, useCaseText, categorysl);
+          const search_keywordsl = search_keywords.join(' ');
+          const search_keywords_filtered = get_search_keywords_filtered(search_keywordsl);
+          const data = {
+            dataId: dataId,
+            dataName: dataName,
+            dataTask: dataTask,
+            dataUrl: dataUrl,
+            dataTaskSlug: el.attr('data-task_slug'),
+            aiLinkHref: el.find('a.ai_link.new_tab.c_event').attr('href'),
+            useCaseText: useCaseText,
+            aiLaunchDateText: el.find('a.ai_launch_date').text().trim(),
+            aiLaunchDateTimestamp: convertToTimestamp(el.find('a.ai_launch_date').text().trim()), // TimeStamp로 추가
+            imgSrc: el.find('img').attr('src').replace(/\?height=207/, ''),
+            summary: summary.summary,
+            screenShot: summary.screenShot,
+            category: category,
+            Category1st: categoryScores[0].category,
+            Category1stScore: categoryScores[0].score,
+            Category2nd: categoryScores[1].category,
+            Category2ndScore: categoryScores[1].score,
+            Category3rd: categoryScores[2].category,
+            Category3rdScore: categoryScores[2].score,
+            Category4th: categoryScores[3].category,
+            Category4thScore: categoryScores[3].score,
+            Category5th: categoryScores[4].category,
+            Category5thScore: categoryScores[4].score,
+            favicon: summary.favicon,
+            categorys: [
+              Category1st,
+              Category2nd,
+              Category3rd
+            ],
+            categorysl: categorysl,
+            search_keywordsl: search_keywordsl,
+            search_keywords_filtered: search_keywords_filtered,
+          };
+          if (result.length < 20) {
+            result.push(data);
+          }
+          insertIntoMongoDB(data);
+        }
+      } else {
+        console.error('Invalid URL:', dataUrl);
       }
     }
   } catch (error) {
@@ -177,8 +191,13 @@ async function fetchAndConvertHtmlToJson(url, outputFile) {
   console.log(`프로그램 시작 시간: ${startTime.toISOString()} (${startTime.getTime()}ms)`);
 
   try {
-    const response = await axios.get(url);
-    const html = response.data;
+    // Puppeteer를 이용해서 웹페이지에 접속하고 HTML 데이터를 가져오는 코드
+    await init();
+    const page = await browser.newPage();
+    await page.goto(url, { waitUntil: 'networkidle2' });
+    const html = await page.content();
+    await page.close();
+
     const $ = cheerio.load(html);
     const data = await extractData($);
 
@@ -217,52 +236,36 @@ async function fetchSiteContent(url) {
       'Accept-Language': 'en'
     });
 
-    let validUrl = isValidUrl(url);
-    console.log("[validUrl]", validUrl);
-    if (!validUrl) {
-      // URL이 유효하지 않으면 https를 추가해서 다시 시도
-      validUrl = isValidUrl('https://' + url);
-      if (!validUrl) {
-        // https로도 실패하면 http를 추가해서 다시 시도
-        validUrl = isValidUrl('http://' + url);
-      } else {
-        url = 'https://' + url;
-        //console.log("[url]", url, "[validUrl]", validUrl);
-      }
-    }
 
-    if (validUrl) {
-      const response = await page.goto(url, { waitUntil: 'networkidle2' });
-      //const headers = response.headers();
-      //console.log('Content-Length:', headers['content-length']);
-      for (i = 10; i > 0; i--) {
-        if (response && response.status() === 500) {
-          await page.waitForTimeout(1 * 1000); // 1초 대기
+
+    const response = await page.goto(url, { waitUntil: 'networkidle2' });
+    //const headers = response.headers();
+    //console.log('Content-Length:', headers['content-length']);
+    for (i = 10; i > 0; i--) {
+      if (response && response.status() === 500) {
+        await page.waitForTimeout(1 * 1000); // 1초 대기
+        console.error(`Error: ${response.status()} occurred while fetching the content from ${url}`);
+        return '';
+      } else if (response && response.status() === 404) {
+        await page.waitForTimeout(1 * 1000); // 1초 대기
+        const bodyHandle = await page.$('body');
+        const bodyText = await page.evaluate(body => body.innerText, bodyHandle);
+
+        await bodyHandle.dispose();
+
+        if (bodyText.includes('404') && (
+          bodyText.includes('not found') ||
+          bodyText.includes('Not found') ||
+          bodyText.includes('error') ||
+          bodyText.includes('Error') ||
+          bodyText.includes('could not')
+        )) {
           console.error(`Error: ${response.status()} occurred while fetching the content from ${url}`);
           return '';
-        } else if (response && response.status() === 404) {
-          await page.waitForTimeout(1 * 1000); // 1초 대기
-          const bodyHandle = await page.$('body');
-          const bodyText = await page.evaluate(body => body.innerText, bodyHandle);
-
-          await bodyHandle.dispose();
-
-          if (bodyText.includes('404') && (
-            bodyText.includes('not found') ||
-            bodyText.includes('Not found') ||
-            bodyText.includes('error') ||
-            bodyText.includes('Error') ||
-            bodyText.includes('could not')
-          )) {
-            console.error(`Error: ${response.status()} occurred while fetching the content from ${url}`);
-            return '';
-          }
         }
-        await page.waitForTimeout(1 * 1000); // 1초 대기
-        console.log(i, "초...");
       }
-    } else {
-      console.error('Invalid URL:', url);
+      await page.waitForTimeout(1 * 1000); // 1초 대기
+      console.log(i, "초...");
     }
 
     const screenshotBuffer = await page.screenshot({
