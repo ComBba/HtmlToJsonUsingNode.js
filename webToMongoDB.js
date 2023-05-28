@@ -1,17 +1,21 @@
 // webToMongoDB.js
 const cheerio = require('cheerio');
-const fs = require('fs');
 const puppeteer = require('puppeteer');
 const sharp = require('sharp');
-const url = require('url');
+const fs = require('fs');
+const path = require('path');
+const util = require('util');
 
+const { isValidUrl, get_categorysl, get_search_keywords, get_search_keywords_filtered } = require('./lib/forWebToMongoDB.js');
 const { createUrlToSummarizeCompletion } = require('./lib/urlToSummarizeWithOpenAI.js');
 const { checkIfExistsInMongoDB, insertIntoMongoDB } = require('./lib/connectMongo.js');
 const { categorizeDataTask } = require('./lib/openaiHelper.js');
 const { sleep, randomInRange, msToTime, convertToTimestamp, removeDots, shuffle } = require('./tools/utils.js');
 const { fetchFaviconAsBase64 } = require('./lib/getFavicon.js');
 
-const { removeStopwords, eng, kor } = require('stopword');
+const readFile = util.promisify(fs.readFile);
+const writeFile = util.promisify(fs.writeFile);
+const stat = util.promisify(fs.stat);
 
 const VIEWPORT_WIDTH = 915;
 const VIEWPORT_HEIGHT = 750;
@@ -39,54 +43,6 @@ async function init() {
   }
 }
 
-function isValidUrl(string) {
-  try {
-    new url.URL(string);
-    return true;
-  } catch (e) {
-    console.error('Error in isValidUrl:', e);
-    return false;
-  }
-}
-
-async function fetchAndSummarize(url) {
-  const content = await fetchSiteContent(url);
-  if (content.contents?.length > 0) {
-    const summaryResult = await createUrlToSummarizeCompletion(content.contents);
-    return { summary: summaryResult.summary, screenShot: content.imageData, favicon: content.faviconData };
-  } else {
-    return { summary: "", screenShot: "", favicon: "" };
-  }
-}
-
-function get_categorysl(Category1st, Category2nd, Category3rd) {
-  return [
-    Category1st.toLowerCase(),
-    Category2nd.toLowerCase(),
-    Category3rd.toLowerCase()
-  ];
-}
-function get_search_keywords(dataName, dataTask, dataTaskSlug, summary, useCaseText, categorysl) {
-  return [
-    dataName.toLowerCase().trim(),
-    dataTask.toLowerCase().trim(),
-    dataTaskSlug.toLowerCase().trim(),
-    summary.toLowerCase().trim(),
-    useCaseText.toLowerCase().trim(),
-    categorysl.join(' ').trim()
-  ];
-}
-// 중복단어들을 제거한, 불용어들을 제외한 검색어 리턴, 영문,한글 지원, text index search에 사용예정
-function get_search_keywords_filtered(search_keywords_filtered) {
-  search_keywords_filtered = removeStopwords(search_keywords_filtered.split(' '), eng).join(' ');
-  search_keywords_filtered = removeStopwords(search_keywords_filtered.split(' '), kor).join(' ');
-  search_keywords_filtered = search_keywords_filtered.replace(/[.,;:]/g, ''); // Remove special characters
-  search_keywords_filtered = search_keywords_filtered.replace(/[\n\r]/g, ' '); // Remove newline and carriage return characters
-  search_keywords_filtered = search_keywords_filtered.replace(/<[^>]*>/g, ''); // Remove HTML tags
-  search_keywords_filtered = [...new Set(search_keywords_filtered.split(' '))].join(' ');// Remove duplicates using Set
-  return search_keywords_filtered;
-}
-
 async function extractData($) {
   const result = [];
   const shuffledElements = $('div.tasks > li').toArray();
@@ -98,7 +54,7 @@ async function extractData($) {
       const el = $(element);
       const dataId = el.attr('data-id');
       const dataName = el.attr('data-name');
-      const dataUrl = el.attr('data-url');
+      let dataUrl = el.attr('data-url');
       let validUrl = isValidUrl(dataUrl);
       console.log("[validUrl]", validUrl);
       if (!validUrl) {
@@ -189,15 +145,50 @@ async function extractData($) {
 async function fetchAndConvertHtmlToJson(url, outputFile) {
   const startTime = new Date();
   console.log(`프로그램 시작 시간: ${startTime.toISOString()} (${startTime.getTime()}ms)`);
-
   try {
+    let html;
+
     // Puppeteer를 이용해서 웹페이지에 접속하고 HTML 데이터를 가져오는 코드
     await init();
-    const page = await browser.newPage();
-    await page.goto(url, { waitUntil: 'networkidle2' });
-    const html = await page.content();
-    await page.close();
+    const cachePath = path.join(__dirname, 'data', 'cache_'.concat(encodeURIComponent(url)));
+    console.log('[cachePath]', cachePath);
+    // Check if the file exists
+    if (!fs.existsSync(cachePath)) {
+      fs.writeFileSync(cachePath, '', 'utf8');
+    }
 
+    try {
+      const stats = await stat(cachePath);
+      // Check if cache is still valid and file size is greater than or equal to 1MB
+      if (stats.size >= 1024 * 1024 && (Date.now() - stats.mtime.getTime()) < 6 * 60 * 60 * 1000) { // 1 hour = 60 minutes * 60 seconds * 1000 milliseconds
+        // Calculate the difference between the current time and the file modification time
+        const diffInSeconds = (Date.now() - stats.mtime.getTime()) / 1000;
+
+        // Convert the difference to hours, minutes, and seconds
+        const diffHours = Math.floor(diffInSeconds / 3600);
+        const diffMinutes = Math.floor((diffInSeconds % 3600) / 60);
+        const diffSeconds = Math.floor(diffInSeconds % 60);
+
+        // Calculate the file size in KB or MB
+        let fileSize = stats.size / 1024; // KB
+        let fileSizeUnit = 'KB';
+        if (fileSize > 1024) {
+          fileSize = fileSize / 1024; // MB
+          fileSizeUnit = 'MB';
+        }
+
+        console.log(`[Cache is still valid] Time: \x1b[32m${diffHours}:${diffMinutes}:${diffSeconds}\x1b[0m ago\n[Cache is still valid] Size: \x1b[32m${fileSize.toFixed(2)} ${fileSizeUnit}\x1b[0m`);
+        html = await readFile(cachePath);
+      } else {
+        const page = await browser.newPage();
+        await page.goto(url, { waitUntil: 'networkidle2' });
+        html = await page.content();
+        await page.close();
+        await writeFile(cachePath, html);
+      }
+    } catch (error) {
+      // File doesn't exist or is expired
+    }
     const $ = cheerio.load(html);
     const data = await extractData($);
 
@@ -217,6 +208,16 @@ async function fetchAndConvertHtmlToJson(url, outputFile) {
   } catch (err) {
     console.error(`Error fetching data from ${url}:`, err);
     process.exit(1);
+  }
+}
+
+async function fetchAndSummarize(url) {
+  const content = await fetchSiteContent(url);
+  if (content.contents?.length > 0) {
+    const summaryResult = await createUrlToSummarizeCompletion(content.contents);
+    return { summary: summaryResult.summary, screenShot: content.imageData, favicon: content.faviconData };
+  } else {
+    return { summary: "", screenShot: "", favicon: "" };
   }
 }
 
@@ -328,12 +329,8 @@ async function fetchSiteContent(url) {
   }
 }
 
-async function closeBrowser() {
-  await browser.close();
-}
-
 (async () => {
   await init();
   await fetchAndConvertHtmlToJson('https://theresanaiforthat.com/', './data/output.json');
-  await closeBrowser();
+  await browser.close();
 })();
