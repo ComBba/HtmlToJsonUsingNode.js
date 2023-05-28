@@ -290,7 +290,7 @@ async function fetchSiteContent(url) {
     if (faviconData) {
       console.log(`[\x1b[32mOK\x1b[0m][DOCU] Updated favicon for ${url}`);
     } else {
-      console.log(`[Fail][DOCU] Could not fetch favicon for ${url}`);
+      console.log(`[\x1b[31mFail\x1b[0m][DOCU] Could not fetch favicon for ${url}`);
     }
     const content = await page.evaluate((url) => {
       const paragraphs = Array.from(document.querySelectorAll('p'));
