@@ -237,10 +237,10 @@ async function fetchSiteContent(url) {
       'Accept-Language': 'en'
     });
 
-    const response = await page.goto(url, { waitUntil: 'networkidle2', timeout: 20000 });
+    const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
     //const headers = response.headers();
     //console.log('Content-Length:', headers['content-length']);
-    for (i = 5; i > 0; i--) {
+    for (i = 10; i > 0; i--) {
       if (response && response.status() >= 500) {
         console.error(`Error: ${response.status()} occurred while fetching the content from ${url}`);
         return '';
