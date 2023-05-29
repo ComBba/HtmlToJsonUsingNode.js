@@ -250,16 +250,15 @@ async function fetchSiteContent(url) {
         const html = await page.content();
 
 
-        if (html.includes('404') &&
-          (
-            html.includes('not found') ||
-            html.includes('Not found') ||
-            html.includes('Not Found') ||
-            html.includes('error') ||
-            html.includes('Error') ||
-            html.includes('could not') ||
-            html.includes('Could not')
-          )
+        if (html.includes('404') ||
+          html.includes('not found') ||
+          html.includes('Not found') ||
+          html.includes('Not Found') ||
+          html.includes('error') ||
+          html.includes('Error') ||
+          html.includes('could not') ||
+          html.includes('Could not') ||
+          html.includes('없습니다')
         ) {
           console.error(`Error: ${response.status()} occurred while fetching the content from ${url}`);
           return '';

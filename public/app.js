@@ -45,9 +45,6 @@ function displayGallery(data, page) {
   data.forEach((item) => {
     const galleryItem = document.createElement("div");
     galleryItem.className = "gallery-item";
-    galleryItem.addEventListener("click", () => {
-      window.open(item.dataUrl, '_blank');
-    });
     /*
     // 높이를 100px 범위 내에서 10px 단위로 랜덤하게 설정
     const randomHeight = Math.floor(Math.random() * 11) * 10; // 0 ~ 100 사이의 10의 배수
@@ -101,6 +98,19 @@ function displayGallery(data, page) {
     const content = document.createElement("div");
     content.className = "content";
     content.innerHTML = '<br/>&nbsp;' + item.summary + '<br/>&nbsp;'.repeat(3);
+    content.addEventListener("click", () => {
+      window.open(item.dataUrl, '_blank');
+    });
+
+    // Delete button
+    const deleteData = document.createElement("div");
+    deleteData.className = "deleteData";
+    deleteData.innerText = `delete ID: ${item.dataId}\n${item.dataUrl}\n`;
+    deleteData.addEventListener("click", () => {
+      console.log(item);
+      deleteDataAndRender(item._id);
+    });
+    //content.insertBefore(deleteData, content.firstChild);
 
     const categoriesScoreContainer = document.createElement("div");
     categoriesScoreContainer.className = "category-score-container";
@@ -121,6 +131,7 @@ function displayGallery(data, page) {
     categoriesScoreContainer.appendChild(category3);
 
     galleryItem.appendChild(img);
+    galleryItem.appendChild(deleteData);
     galleryItem.appendChild(content);
     galleryItem.appendChild(categoriesScoreContainer);
     gallery.appendChild(galleryItem);
@@ -241,4 +252,18 @@ function renderCategories(categories) {
     });
     categoriesContainer.appendChild(categoryElement);
   });
+}
+
+function deleteDataAndRender(objId) {
+  console.log('[deleteOne][client]', objId);
+  fetch(`/delete/${objId}`, { method: 'DELETE' })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("HTTP error " + response.status);
+      }
+      fetchData(currentPage); // Refetch the data after deletion
+    })
+    .catch((error) => {
+      console.error("Error deleting data:", error);
+    });
 }

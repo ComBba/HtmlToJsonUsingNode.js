@@ -2,7 +2,7 @@
 const express = require('express');
 const path = require('path');
 const dotenv = require('dotenv');
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 const NodeCache = require('node-cache'); // Import the node-cache package
 
 dotenv.config({ path: path.join(__dirname, '.env.local') });
@@ -144,6 +144,27 @@ app.get("/categories", async (req, res) => {
   } catch (err) {
     res.status(500).send("Error fetching categories from MongoDB");
     console.error("Error fetching categories from MongoDB:", err);
+  }
+});
+
+app.delete('/delete/:objId', async (req, res) => {
+  const { objId } = req.params;
+
+  try {
+    const client = await getClient();
+    const collection = client.db(dbName).collection(collectionName);
+    const item = await collection.findOne({ _id: new ObjectId(objId) }, { projection: { _id: 1, dataId: 1, dataName: 1, dataUrl: 1 } });
+    console.log('[deleteOne][item]', item);
+    const result = await collection.deleteOne({ _id: new ObjectId(objId) });
+    console.log('[deleteOne][result]', result);
+    if (result.deletedCount === 1) {
+      res.status(200).send(`Successfully deleted item with id ${objId}`);
+    } else {
+      res.status(404).send(`No item found with id ${objId}`);
+    }
+  } catch (err) {
+    res.status(500).send(`Error deleting item with id ${objId}`);
+    console.error(`Error deleting item with id ${objId}:`, err);
   }
 });
 
