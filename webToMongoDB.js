@@ -181,7 +181,7 @@ async function fetchAndConvertHtmlToJson(url, outputFile) {
         html = await readFile(cachePath);
       } else {
         const page = await browser.newPage();
-        await page.goto(url, { waitUntil: 'networkidle2' });
+        await page.goto(url, { waitUntil: 'networkidle2', timeout: 10000 });
         html = await page.content();
         await page.close();
         await writeFile(cachePath, html);
@@ -237,7 +237,7 @@ async function fetchSiteContent(url) {
       'Accept-Language': 'en'
     });
 
-    const response = await page.goto(url, { waitUntil: 'networkidle2' });
+    const response = await page.goto(url, { waitUntil: 'networkidle2', timeout: 10000 });
     //const headers = response.headers();
     //console.log('Content-Length:', headers['content-length']);
     for (i = 5; i > 0; i--) {

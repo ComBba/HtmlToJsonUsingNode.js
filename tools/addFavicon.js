@@ -69,7 +69,7 @@ async function init() {
             while (retryCount < maxRetries && !success) {
                 try {
                     console.log("[NOTICE][DOCU][", i + 1, "/", documents.length, "][", retryCount + 1, "/", maxRetries, "] Document processing to add favicon:", dataUrl);
-                    const response = await page.goto(dataUrl, { waitUntil: 'networkidle2' });
+                    const response = await page.goto(dataUrl, { waitUntil: 'networkidle2', timeout: 10000 });
                     for (cntTimeout = 3; cntTimeout > 0; cntTimeout--) {
                         if (response && (response.status() === 404 || response.status() === 500)) {
                             console.error(`Error: ${response.status()} occurred while fetching the content from ${dataUrl}`);
