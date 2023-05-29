@@ -241,15 +241,14 @@ async function fetchSiteContent(url) {
     //const headers = response.headers();
     //console.log('Content-Length:', headers['content-length']);
     for (i = 3; i > 0; i--) {
-      if (response && response.status() === 500) {
-        await page.waitForTimeout(1 * 1000); // 1초 대기
+      if (response && response.status() >= 500) {
         console.error(`Error: ${response.status()} occurred while fetching the content from ${url}`);
         return '';
-      } else if (response && response.status() === 404) {
-        await page.waitForTimeout(1 * 1000); // 1초 대기
+      } else if (response && response.status() >= 404) {
         const html = (await page.content()).toLowerCase();
 
-        if (html.includes('404') ||
+        if (html.includes('403') ||
+          html.includes('404') ||
           html.includes('not found') ||
           html.includes('error') ||
           html.includes('could not') ||
