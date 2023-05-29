@@ -56,7 +56,7 @@ async function extractData($) {
       const dataName = el.attr('data-name');
       let dataUrl = el.attr('data-url');
       let validUrl = isValidUrl(dataUrl);
-      console.log("[validUrl]", validUrl);
+      //console.log("[validUrl]", validUrl);
       if (!validUrl) {
         // URL이 유효하지 않으면 https를 추가해서 다시 시도
         validUrl = isValidUrl('https://' + dataUrl);
@@ -240,7 +240,7 @@ async function fetchSiteContent(url) {
     const response = await page.goto(url, { waitUntil: 'networkidle2', timeout: 10000 });
     //const headers = response.headers();
     //console.log('Content-Length:', headers['content-length']);
-    for (i = 5; i > 0; i--) {
+    for (i = 3; i > 0; i--) {
       if (response && response.status() === 500) {
         await page.waitForTimeout(1 * 1000); // 1초 대기
         console.error(`Error: ${response.status()} occurred while fetching the content from ${url}`);
