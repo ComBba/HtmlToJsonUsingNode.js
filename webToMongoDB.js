@@ -244,7 +244,7 @@ async function fetchSiteContent(url) {
       if (response && response.status() >= 500) {
         console.error(`Error: ${response.status()} occurred while fetching the content from ${url}`);
         return '';
-      } else if (response && response.status() >= 404) {
+      } else if (response && response.status() >= 400) {
         const html = (await page.content()).toLowerCase();
 
         if (html.includes('403') ||
