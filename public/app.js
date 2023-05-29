@@ -107,8 +107,11 @@ function displayGallery(data, page) {
     deleteData.className = "deleteData";
     deleteData.innerText = `delete ID: ${item.dataId}\n${item.dataUrl}\n`;
     deleteData.addEventListener("click", () => {
-      console.log(item);
-      deleteDataAndRender(item._id);
+      const userConfirmation = confirm("Are you sure you want to delete this item?");
+      if (userConfirmation) {
+        console.log(item);
+        deleteDataAndRender(item._id);
+      }
     });
     //content.insertBefore(deleteData, content.firstChild);
 
