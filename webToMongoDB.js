@@ -247,18 +247,14 @@ async function fetchSiteContent(url) {
         return '';
       } else if (response && response.status() === 404) {
         await page.waitForTimeout(1 * 1000); // 1초 대기
-        const html = await page.content();
-
+        const html = (await page.content()).toLowerCase();
 
         if (html.includes('404') ||
           html.includes('not found') ||
-          html.includes('Not found') ||
-          html.includes('Not Found') ||
           html.includes('error') ||
-          html.includes('Error') ||
           html.includes('could not') ||
-          html.includes('Could not') ||
-          html.includes('없습니다')
+          html.includes('없습니다') ||
+          html.includes('unavailable')
         ) {
           console.error(`Error: ${response.status()} occurred while fetching the content from ${url}`);
           return '';
