@@ -49,11 +49,13 @@ async function init() {
         const documents = await collection
             .find(
                 { $or: [{ favicon: { $exists: false } }, { favicon: '' }] },
+                //{ dataUrl: 'https://www.alphawatch.ai/'},
                 //{dataUrl: 'https://rolebot.streamlit.app/'},
                 //{dataUrl: 'https://www.opentable.com/blog/chatgpt/'}, //TODO: Cloudflare 처리된 사이트들
                 //{},
                 { projection: { _id: 1, dataUrl: 1 } } // 필요한 필드만 선택
             )//.limit(10)
+            .sort({ _id: -1 })
             .toArray();
         console.info(`Found \x1b[36m${documents.length}\x1b[0m documents to update favicon.`);
 
@@ -68,9 +70,9 @@ async function init() {
                 try {
                     console.log("[NOTICE][DOCU][", i + 1, "/", documents.length, "][", retryCount + 1, "/", maxRetries, "] Document processing to add favicon:", dataUrl);
                     const response = await page.goto(dataUrl, { waitUntil: 'networkidle2' });
-                    for (cntTimeout = 10; cntTimeout > 0; cntTimeout--) {
+                    for (cntTimeout = 3; cntTimeout > 0; cntTimeout--) {
                         if (response && (response.status() === 404 || response.status() === 500)) {
-                            console.error(`Error: ${response.status()} occurred while fetching the content from ${url}`);
+                            console.error(`Error: ${response.status()} occurred while fetching the content from ${dataUrl}`);
                             continue;
                         }
                         await page.waitForTimeout(1 * 1000); // 1초 대기

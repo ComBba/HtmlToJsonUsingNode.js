@@ -237,30 +237,30 @@ async function fetchSiteContent(url) {
       'Accept-Language': 'en'
     });
 
-
-
     const response = await page.goto(url, { waitUntil: 'networkidle2' });
     //const headers = response.headers();
     //console.log('Content-Length:', headers['content-length']);
-    for (i = 10; i > 0; i--) {
+    for (i = 5; i > 0; i--) {
       if (response && response.status() === 500) {
         await page.waitForTimeout(1 * 1000); // 1초 대기
         console.error(`Error: ${response.status()} occurred while fetching the content from ${url}`);
         return '';
       } else if (response && response.status() === 404) {
         await page.waitForTimeout(1 * 1000); // 1초 대기
-        const bodyHandle = await page.$('body');
-        const bodyText = await page.evaluate(body => body.innerText, bodyHandle);
+        const html = await page.content();
 
-        await bodyHandle.dispose();
 
-        if (bodyText.includes('404') && (
-          bodyText.includes('not found') ||
-          bodyText.includes('Not found') ||
-          bodyText.includes('error') ||
-          bodyText.includes('Error') ||
-          bodyText.includes('could not')
-        )) {
+        if (html.includes('404') &&
+          (
+            html.includes('not found') ||
+            html.includes('Not found') ||
+            html.includes('Not Found') ||
+            html.includes('error') ||
+            html.includes('Error') ||
+            html.includes('could not') ||
+            html.includes('Could not')
+          )
+        ) {
           console.error(`Error: ${response.status()} occurred while fetching the content from ${url}`);
           return '';
         }
