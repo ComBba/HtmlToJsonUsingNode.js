@@ -17,8 +17,8 @@ const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
 const stat = util.promisify(fs.stat);
 
-const VIEWPORT_WIDTH = 915;
-const VIEWPORT_HEIGHT = 750;
+const VIEWPORT_WIDTH = 1200;
+const VIEWPORT_HEIGHT = 800;
 const BrowserHEADER = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36'
 
 let browser;
@@ -267,8 +267,8 @@ async function fetchSiteContent(url) {
       clip: {
         x: 0,
         y: 0,
-        width: 915,
-        height: 750,
+        width: VIEWPORT_WIDTH,
+        height: VIEWPORT_HEIGHT,
       },
     });
 
